@@ -55,7 +55,29 @@ public class HexGrid : MonoBehaviour {
 		cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
 		cell.color = defaultColor;
 
-		Text label = Instantiate<Text>(cellLabelPrefab);
+		//The first cell of each row doesn't have a west neighbor.
+		//But all other cells in the row do.
+		if (x > 0) {
+			cell.SetNeighbor(HexDirection.W, cells[i - 1]);
+		}
+        if (z > 0) {
+            if ((z & 1) == 0) {
+                //As all cells in such rows have a SE neighbor, we can connect to those.
+                cell.SetNeighbor(HexDirection.SE, cells[i - width]);
+                //SW neighbors as well. Except for the first cell in each row,
+				//as it doesn't have one.
+                if (x > 0) {
+                    cell.SetNeighbor(HexDirection.SW, cells[i - width - 1]);
+                }
+            }
+            else {
+                cell.SetNeighbor(HexDirection.SW, cells[i - width]);
+                if (x < width - 1) {
+                    cell.SetNeighbor(HexDirection.SE, cells[i - width + 1]);
+                }
+            }
+        }
+        Text label = Instantiate<Text>(cellLabelPrefab);
 		label.rectTransform.SetParent(gridCanvas.transform, false);
 		label.rectTransform.anchoredPosition =
 			new Vector2(position.x, position.z);
