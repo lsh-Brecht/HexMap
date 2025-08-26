@@ -77,6 +77,7 @@ public class HexMesh : MonoBehaviour
             AddQuad(v1, v2, v3, v4);
             AddQuadColor(cell.color, neighbor.color);
         }
+        // keep the original code in comments as well, for later reference.
         //AddQuad(v1, v2, v3, v4);
         //AddQuadColor(cell.color, neighbor.color);
 

@@ -42,7 +42,7 @@ public class HexMapEditor : MonoBehaviour {
     public void SelectColor (int index) {
 		activeColor = colors[index];
 	}
-	//slider
+	//slider 0~6
     public void SetElevation(float elevation) {
         activeElevation = (int)elevation;
     }

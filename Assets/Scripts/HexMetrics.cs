@@ -70,7 +70,7 @@ public static class HexMetrics {
         float h = step * HexMetrics.horizontalTerraceStepSize;
         return Color.Lerp(a, b, h);
     }
-    //
+
     public static HexEdgeType GetEdgeType(int elevation1, int elevation2) {
         if (elevation1 == elevation2) {
             return HexEdgeType.Flat;

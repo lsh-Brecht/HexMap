@@ -11,7 +11,6 @@ public class HexCell : MonoBehaviour {
 	public Color color;
 
     public RectTransform uiRect;
-    //Now we can adjust the cell's vertical position whenever its elevation is edited.
     public int Elevation {
         get {
             return elevation;
