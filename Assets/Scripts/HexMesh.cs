@@ -64,6 +64,7 @@ public class HexMesh : MonoBehaviour
         if (neighbor == null) {
             return;
         }
+        //The bridge is a vector that extends from the current cell to a neighboring cell.
         Vector3 bridge = HexMetrics.GetBridge(direction);
         Vector3 v3 = v1 + bridge;
         Vector3 v4 = v2 + bridge;

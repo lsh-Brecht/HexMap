@@ -11,7 +11,7 @@ public class HexCell : MonoBehaviour {
 	public Color color;
 
     public RectTransform uiRect;
-
+    //Now we can adjust the cell's vertical position whenever its elevation is edited.
     public int Elevation {
         get {
             return elevation;
@@ -40,6 +40,7 @@ public class HexCell : MonoBehaviour {
         cell.neighbors[(int)direction.Opposite()] = this;
     }
 
+    //The GetEdgeType method is declared in HexCell.cs but defined in HexMetrics.cs
     public HexEdgeType GetEdgeType(HexDirection direction) {
         return HexMetrics.GetEdgeType(
             elevation, neighbors[(int)direction].elevation
