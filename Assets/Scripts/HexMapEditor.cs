@@ -10,9 +10,9 @@ public class HexMapEditor : MonoBehaviour {
 	int activeElevation;
 	int activeWaterLevel;
 
-    int activeUrbanLevel, activeFarmLevel, activePlantLevel;
+	int activeUrbanLevel, activeFarmLevel, activePlantLevel;
 
-    Color activeColor;
+	Color activeColor;
 
 	int brushSize;
 
@@ -20,13 +20,13 @@ public class HexMapEditor : MonoBehaviour {
 	bool applyElevation = true;
 	bool applyWaterLevel = true;
 
-    bool applyUrbanLevel, applyFarmLevel, applyPlantLevel;
+	bool applyUrbanLevel, applyFarmLevel, applyPlantLevel;
 
-    enum OptionalToggle {
+	enum OptionalToggle {
 		Ignore, Yes, No
 	}
 
-	OptionalToggle riverMode, roadMode;
+	OptionalToggle riverMode, roadMode, walledMode;
 
 	bool isDrag;
 	HexDirection dragDirection;
@@ -63,23 +63,23 @@ public class HexMapEditor : MonoBehaviour {
 		activeUrbanLevel = (int)level;
 	}
 
-    public void SetApplyFarmLevel(bool toggle) {
-        applyFarmLevel = toggle;
-    }
+	public void SetApplyFarmLevel (bool toggle) {
+		applyFarmLevel = toggle;
+	}
 
-    public void SetFarmLevel(float level) {
-        activeFarmLevel = (int)level;
-    }
+	public void SetFarmLevel (float level) {
+		activeFarmLevel = (int)level;
+	}
 
-    public void SetApplyPlantLevel(bool toggle) {
-        applyPlantLevel = toggle;
-    }
+	public void SetApplyPlantLevel (bool toggle) {
+		applyPlantLevel = toggle;
+	}
 
-    public void SetPlantLevel(float level) {
-        activePlantLevel = (int)level;
-    }
+	public void SetPlantLevel (float level) {
+		activePlantLevel = (int)level;
+	}
 
-    public void SetBrushSize (float size) {
+	public void SetBrushSize (float size) {
 		brushSize = (int)size;
 	}
 
@@ -89,6 +89,10 @@ public class HexMapEditor : MonoBehaviour {
 
 	public void SetRoadMode (int mode) {
 		roadMode = (OptionalToggle)mode;
+	}
+
+	public void SetWalledMode (int mode) {
+		walledMode = (OptionalToggle)mode;
 	}
 
 	public void ShowUI (bool visible) {
@@ -174,17 +178,20 @@ public class HexMapEditor : MonoBehaviour {
 			if (applyUrbanLevel) {
 				cell.UrbanLevel = activeUrbanLevel;
 			}
-            if (applyFarmLevel) {
-                cell.FarmLevel = activeFarmLevel;
-            }
-            if (applyPlantLevel) {
-                cell.PlantLevel = activePlantLevel;
-            }
-            if (riverMode == OptionalToggle.No) {
+			if (applyFarmLevel) {
+				cell.FarmLevel = activeFarmLevel;
+			}
+			if (applyPlantLevel) {
+				cell.PlantLevel = activePlantLevel;
+			}
+			if (riverMode == OptionalToggle.No) {
 				cell.RemoveRiver();
 			}
 			if (roadMode == OptionalToggle.No) {
 				cell.RemoveRoads();
+			}
+			if (walledMode != OptionalToggle.Ignore) {
+				cell.Walled = walledMode == OptionalToggle.Yes;
 			}
 			if (isDrag) {
 				HexCell otherCell = cell.GetNeighbor(dragDirection.Opposite());

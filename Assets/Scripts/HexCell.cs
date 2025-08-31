@@ -157,10 +157,62 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
+	public int UrbanLevel {
+		get {
+			return urbanLevel;
+		}
+		set {
+			if (urbanLevel != value) {
+				urbanLevel = value;
+				RefreshSelfOnly();
+			}
+		}
+	}
+
+	public int FarmLevel {
+		get {
+			return farmLevel;
+		}
+		set {
+			if (farmLevel != value) {
+				farmLevel = value;
+				RefreshSelfOnly();
+			}
+		}
+	}
+
+	public int PlantLevel {
+		get {
+			return plantLevel;
+		}
+		set {
+			if (plantLevel != value) {
+				plantLevel = value;
+				RefreshSelfOnly();
+			}
+		}
+	}
+
+	public bool Walled {
+		get {
+			return walled;
+		}
+		set {
+			if (walled != value) {
+				walled = value;
+				Refresh();
+			}
+		}
+	}
+
 	Color color;
 
 	int elevation = int.MinValue;
 	int waterLevel;
+
+	int urbanLevel, farmLevel, plantLevel;
+
+	bool walled;
 
 	bool hasIncomingRiver, hasOutgoingRiver;
 	HexDirection incomingRiver, outgoingRiver;
@@ -320,42 +372,4 @@ public class HexCell : MonoBehaviour {
 	void RefreshSelfOnly () {
 		chunk.Refresh();
 	}
-
-    public int UrbanLevel {
-        get {
-            return urbanLevel;
-        }
-        set {
-            if (urbanLevel != value) {
-                urbanLevel = value;
-                RefreshSelfOnly();
-            }
-        }
-    }
-
-    public int FarmLevel {
-        get {
-            return farmLevel;
-        }
-        set {
-            if (farmLevel != value) {
-                farmLevel = value;
-                RefreshSelfOnly();
-            }
-        }
-    }
-
-    public int PlantLevel {
-        get {
-            return plantLevel;
-        }
-        set {
-            if (plantLevel != value) {
-                plantLevel = value;
-                RefreshSelfOnly();
-            }
-        }
-    }
-
-    int urbanLevel, farmLevel, plantLevel;
 }
