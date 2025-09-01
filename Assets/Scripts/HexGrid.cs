@@ -14,7 +14,7 @@ public class HexGrid : MonoBehaviour {
 
 	public int seed;
 
-	public Color[] colors;
+//	public Color[] colors;
 
 	HexGridChunk[] chunks;
 	HexCell[] cells;
@@ -24,7 +24,7 @@ public class HexGrid : MonoBehaviour {
 	void Awake () {
 		HexMetrics.noiseSource = noiseSource;
 		HexMetrics.InitializeHashGrid(seed);
-		HexMetrics.colors = colors;
+//		HexMetrics.colors = colors;
 		CreateMap(cellCountX, cellCountZ);
 	}
 
@@ -49,8 +49,8 @@ public class HexGrid : MonoBehaviour {
 		chunkCountZ = cellCountZ / HexMetrics.chunkSizeZ;
 		CreateChunks();
 		CreateCells();
-        return true;
-    }
+		return true;
+	}
 
 	void CreateChunks () {
 		chunks = new HexGridChunk[chunkCountX * chunkCountZ];
@@ -77,7 +77,7 @@ public class HexGrid : MonoBehaviour {
 		if (!HexMetrics.noiseSource) {
 			HexMetrics.noiseSource = noiseSource;
 			HexMetrics.InitializeHashGrid(seed);
-			HexMetrics.colors = colors;
+//			HexMetrics.colors = colors;
 		}
 	}
 
@@ -157,29 +157,29 @@ public class HexGrid : MonoBehaviour {
 	}
 
 	public void Save (BinaryWriter writer) {
-        writer.Write(cellCountX);
-        writer.Write(cellCountZ);
-        
+		writer.Write(cellCountX);
+		writer.Write(cellCountZ);
+
 		for (int i = 0; i < cells.Length; i++) {
 			cells[i].Save(writer);
 		}
 	}
 
-    public void Load(BinaryReader reader, int header) {
-        int x = 20, z = 15;
-        if (header >= 1) {
-            x = reader.ReadInt32();
-            z = reader.ReadInt32();
-        }
-        if (x != cellCountX || z != cellCountZ) {
-            if (!CreateMap(x, z)) {
-                return;
-            }
-        }
-        for (int i = 0; i < cells.Length; i++) {
+	public void Load (BinaryReader reader, int header) {
+		int x = 20, z = 15;
+		if (header >= 1) {
+			x = reader.ReadInt32();
+			z = reader.ReadInt32();
+		}
+		if (x != cellCountX || z != cellCountZ) {
+			if (!CreateMap(x, z)) {
+				return;
+			}
+		}
+
+		for (int i = 0; i < cells.Length; i++) {
 			cells[i].Load(reader);
-            HexMapCamera.ValidatePosition();
-        }
+		}
 		for (int i = 0; i < chunks.Length; i++) {
 			chunks[i].Refresh();
 		}
