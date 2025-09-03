@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
-using System.IO;
 using UnityEngine.UI;
+using System.IO;
 
 public class HexCell : MonoBehaviour {
 
@@ -215,6 +215,18 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
+	public int Distance {
+		get {
+			return distance;
+		}
+		set {
+			distance = value;
+			UpdateDistanceLabel();
+		}
+	}
+
+	public HexCell PathFrom { get; set; }
+
 	int terrainTypeIndex;
 
 	int elevation = int.MinValue;
@@ -223,6 +235,8 @@ public class HexCell : MonoBehaviour {
 	int urbanLevel, farmLevel, plantLevel;
 
 	int specialIndex;
+
+	int distance;
 
 	bool walled;
 
@@ -469,20 +483,19 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
-    int distance;
+	void UpdateDistanceLabel () {
+		UnityEngine.UI.Text label = uiRect.GetComponent<Text>();
+		label.text = distance == int.MaxValue ? "" : distance.ToString();
+	}
 
-    void UpdateDistanceLabel() {
-        Text label = uiRect.GetComponent<Text>();
-        label.text = distance == int.MaxValue ? "" : distance.ToString();
-    }
+	public void DisableHighlight () {
+		Image highlight = uiRect.GetChild(0).GetComponent<Image>();
+		highlight.enabled = false;
+	}
 
-    public int Distance {
-        get {
-            return distance;
-        }
-        set {
-            distance = value;
-            UpdateDistanceLabel();
-        }
-    }
+	public void EnableHighlight (Color color) {
+		Image highlight = uiRect.GetChild(0).GetComponent<Image>();
+		highlight.color = color;
+		highlight.enabled = true;
+	}
 }
