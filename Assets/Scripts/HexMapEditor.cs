@@ -146,7 +146,7 @@ public class HexMapEditor : MonoBehaviour {
 			if (editMode) {
 				EditCells(currentCell);
 			}
-			else if (Input.GetKey(KeyCode.LeftShift)) {
+			else if (Input.GetKey(KeyCode.LeftShift) && searchToCell != currentCell) {
 				if (searchFromCell) {
 					searchFromCell.DisableHighlight();
 				}
