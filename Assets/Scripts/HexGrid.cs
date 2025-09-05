@@ -193,7 +193,8 @@ public class HexGrid : MonoBehaviour {
 	}
 
 	void Search (HexCell fromCell, HexCell toCell, int speed) {
-		if (searchFrontier == null) {
+        searchFrontierPhase += 2;
+        if (searchFrontier == null) {
 			searchFrontier = new HexCellPriorityQueue();
 		}
 		else {
@@ -201,18 +202,19 @@ public class HexGrid : MonoBehaviour {
 		}
 
 		for (int i = 0; i < cells.Length; i++) {
-			cells[i].Distance = int.MaxValue;
 			cells[i].SetLabel(null);
 			cells[i].DisableHighlight();
 		}
 		fromCell.EnableHighlight(Color.blue);
 
-		fromCell.Distance = 0;
+        fromCell.SearchPhase = searchFrontierPhase;
+        fromCell.Distance = 0;
 		searchFrontier.Enqueue(fromCell);
 		while (searchFrontier.Count > 0) {
 			HexCell current = searchFrontier.Dequeue();
+            current.SearchPhase += 1;
 
-			if (current == toCell) {
+            if (current == toCell) {
 				while (current != fromCell) {
 					int turn = current.Distance / speed;
 					current.SetLabel(turn.ToString());
@@ -227,7 +229,7 @@ public class HexGrid : MonoBehaviour {
 
 			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
 				HexCell neighbor = current.GetNeighbor(d);
-				if (neighbor == null) {
+				if (neighbor == null || neighbor.SearchPhase > searchFrontierPhase) {
 					continue;
 				}
 				if (neighbor.IsUnderwater) {
@@ -256,9 +258,10 @@ public class HexGrid : MonoBehaviour {
 					distance = turn * speed + moveCost;
 				}
 
-				if (neighbor.Distance == int.MaxValue) {
-					neighbor.Distance = distance;
-//					neighbor.SetLabel(turn.ToString());
+                if (neighbor.SearchPhase < searchFrontierPhase) {
+                    neighbor.SearchPhase = searchFrontierPhase;
+                    neighbor.Distance = distance;
+					//neighbor.SetLabel(turn.ToString());
 					neighbor.PathFrom = current;
 					neighbor.SearchHeuristic =
 						neighbor.coordinates.DistanceTo(toCell.coordinates);
@@ -267,11 +270,13 @@ public class HexGrid : MonoBehaviour {
 				else if (distance < neighbor.Distance) {
 					int oldPriority = neighbor.SearchPriority;
 					neighbor.Distance = distance;
-//					neighbor.SetLabel(turn.ToString());
+					//neighbor.SetLabel(turn.ToString());
 					neighbor.PathFrom = current;
 					searchFrontier.Change(neighbor, oldPriority);
 				}
 			}
 		}
 	}
+
+    int searchFrontierPhase;
 }
