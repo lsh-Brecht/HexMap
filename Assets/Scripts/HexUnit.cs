@@ -8,6 +8,9 @@ public class HexUnit : MonoBehaviour
             return location;
         }
         set {
+            if (location) {
+                location.Unit = null;
+            }
             location = value;
             value.Unit = this;
             transform.localPosition = value.Position;
@@ -51,4 +54,8 @@ public class HexUnit : MonoBehaviour
     }
 
     public static HexUnit unitPrefab;
+
+    public bool IsValidDestination(HexCell cell) {
+        return !cell.IsUnderwater && !cell.Unit; ;
+    }
 }

@@ -242,7 +242,7 @@ public class HexGrid : MonoBehaviour {
 				if (neighbor == null || neighbor.SearchPhase > searchFrontierPhase) {
 					continue;
 				}
-				if (neighbor.IsUnderwater) {
+				if (neighbor.IsUnderwater || neighbor.Unit) {
 					continue;
 				}
 				HexEdgeType edgeType = current.GetEdgeType(neighbor);
@@ -310,7 +310,7 @@ public class HexGrid : MonoBehaviour {
         currentPathTo.EnableHighlight(Color.red);
     }
 
-    void ClearPath() {
+    public void ClearPath() {
         if (currentPathExists) {
             HexCell current = currentPathTo;
             while (current != currentPathFrom) {
@@ -348,4 +348,18 @@ public class HexGrid : MonoBehaviour {
     }
 
     public HexUnit unitPrefab;
+
+    public HexCell GetCell(Ray ray) {
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit)) {
+            return GetCell(hit.point);
+        }
+        return null;
+    }
+
+    public bool HasPath {
+        get {
+            return currentPathExists;
+        }
+    }
 }

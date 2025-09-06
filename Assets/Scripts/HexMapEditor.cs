@@ -18,8 +18,6 @@ public class HexMapEditor : MonoBehaviour {
 
 	int brushSize;
 
-	bool editMode;
-
 	bool applyElevation = true;
 	bool applyWaterLevel = true;
 
@@ -33,9 +31,9 @@ public class HexMapEditor : MonoBehaviour {
 
 	bool isDrag;
 	HexDirection dragDirection;
-	HexCell previousCell, searchFromCell, searchToCell;
+    HexCell previousCell;
 
-	public void SetTerrainTypeIndex (int index) {
+    public void SetTerrainTypeIndex (int index) {
 		activeTerrainTypeIndex = index;
 	}
 
@@ -104,9 +102,8 @@ public class HexMapEditor : MonoBehaviour {
 	}
 
 	public void SetEditMode (bool toggle) {
-		editMode = toggle;
-		hexGrid.ShowUI(!toggle);
-	}
+        enabled = toggle;
+    }
 
 	public void ShowGrid (bool visible) {
 		if (visible) {
@@ -119,7 +116,8 @@ public class HexMapEditor : MonoBehaviour {
 
 	void Awake () {
 		terrainMaterial.DisableKeyword("GRID_ON");
-	}
+        SetEditMode(false);
+    }
 
 	void Update () {
         if (!EventSystem.current.IsPointerOverGameObject()) {
@@ -149,27 +147,7 @@ public class HexMapEditor : MonoBehaviour {
 			else {
 				isDrag = false;
 			}
-			if (editMode) {
-				EditCells(currentCell);
-			}
-			else if (Input.GetKey(KeyCode.LeftShift)) {
-				if (searchFromCell != currentCell) {
-					if (searchFromCell) {
-						searchFromCell.DisableHighlight();
-					}
-					searchFromCell = currentCell;
-					searchFromCell.EnableHighlight(Color.blue);
-					if (searchToCell) {
-						hexGrid.FindPath(searchFromCell, searchToCell, 24);
-					}
-				}
-			}
-			else if (searchFromCell && searchFromCell != currentCell) {
-				if (searchToCell != currentCell) {
-					searchToCell = currentCell;
-					hexGrid.FindPath(searchFromCell, searchToCell, 24);
-				}
-			}
+			EditCells(currentCell);
 			previousCell = currentCell;
 		}
 		else {
@@ -254,12 +232,8 @@ public class HexMapEditor : MonoBehaviour {
 	}
 
     HexCell GetCellUnderCursor() {
-        Ray inputRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        if (Physics.Raycast(inputRay, out hit)) {
-            return hexGrid.GetCell(hit.point);
-        }
-        return null;
+        return
+            hexGrid.GetCell(Camera.main.ScreenPointToRay(Input.mousePosition));
     }
 
     void CreateUnit() {
