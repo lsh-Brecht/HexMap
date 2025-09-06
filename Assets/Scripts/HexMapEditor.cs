@@ -239,7 +239,7 @@ public class HexMapEditor : MonoBehaviour {
     void CreateUnit() {
         HexCell cell = GetCellUnderCursor();
         if (cell && !cell.Unit) {
-            Debug.Log("Unit is created");
+            //Debug.Log("Unit is created");
             hexGrid.AddUnit(Instantiate(HexUnit.unitPrefab), cell, Random.Range(0f, 360f));
         }
     }
