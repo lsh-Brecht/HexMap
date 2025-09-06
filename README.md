@@ -9,15 +9,19 @@ procedural mesh generation과 타일맵에서의 경로 탐색 알고리즘을 �
 
 마우스 클릭으로 시작 셀과 도착 셀을 지정하면, 두 지점 사이의 최단 경로를 찾아 표시.  
 
-<img src="images/hexMap16screenShot1.png" width="400">  
+<img src="images/hexMap16screenShot1.png" width="300">  
 
 조금 더 복잡한 지형에서  
 
-<img src="images/hexMap16screenShot2.png" width="700">  
+<img src="images/hexMap16screenShot2.png" width="600">  
+
+다른 유닛과 일부 지형을 피해서 경로를 찾는 예시(거리가 아닌 이동에 필요한 턴 표시)
+
+<img src="images/hexMap18screenShot.png" width="400">
 
 ---
 🛠️ 향후 계획  
-- 현재는 Pathfinding 알고리즘으로 단순 BFS 적용 -> A* 알고리즘 적용 예정  
+- A* 알고리즘 적용...
 - Built-in 렌더링을 기준으로 작성된 텍스쳐를 새 유니티 버전(URP)에 맞게 수정 필요(가능할지 모르겠음)  
 ---
 📚 참고 자료  
