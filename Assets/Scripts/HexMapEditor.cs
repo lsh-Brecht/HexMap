@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using System.IO;
+using static UnityEditor.FilePathAttribute;
 
 public class HexMapEditor : MonoBehaviour {
 
@@ -121,23 +122,28 @@ public class HexMapEditor : MonoBehaviour {
 	}
 
 	void Update () {
-		if (
-			Input.GetMouseButton(0) &&
-			!EventSystem.current.IsPointerOverGameObject()
-		) {
-			HandleInput();
-		}
-		else {
-			previousCell = null;
-		}
-	}
+        if (!EventSystem.current.IsPointerOverGameObject()) {
+            if (Input.GetMouseButton(0)) {
+                HandleInput();
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.U)) {
+                if (Input.GetKey(KeyCode.LeftShift)) {
+                    DestroyUnit();
+                }
+                else {
+                    CreateUnit();
+                }
+                return;
+            }
+        }
+        previousCell = null;
+    }
 
 	void HandleInput () {
-		Ray inputRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-		RaycastHit hit;
-		if (Physics.Raycast(inputRay, out hit)) {
-			HexCell currentCell = hexGrid.GetCell(hit.point);
-			if (previousCell && previousCell != currentCell) {
+        HexCell currentCell = GetCellUnderCursor();
+        if (currentCell) {
+            if (previousCell && previousCell != currentCell) {
 				ValidateDrag(currentCell);
 			}
 			else {
@@ -246,4 +252,28 @@ public class HexMapEditor : MonoBehaviour {
 			}
 		}
 	}
+
+    HexCell GetCellUnderCursor() {
+        Ray inputRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+        if (Physics.Raycast(inputRay, out hit)) {
+            return hexGrid.GetCell(hit.point);
+        }
+        return null;
+    }
+
+    void CreateUnit() {
+        HexCell cell = GetCellUnderCursor();
+        if (cell && !cell.Unit) {
+            Debug.Log("Unit is created");
+            hexGrid.AddUnit(Instantiate(HexUnit.unitPrefab), cell, Random.Range(0f, 360f));
+        }
+    }
+
+    void DestroyUnit() {
+        HexCell cell = GetCellUnderCursor();
+        if (cell && cell.Unit) {
+            hexGrid.RemoveUnit(cell.Unit);
+        }
+    }
 }

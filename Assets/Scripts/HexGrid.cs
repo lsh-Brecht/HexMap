@@ -26,7 +26,8 @@ public class HexGrid : MonoBehaviour {
 	void Awake () {
 		HexMetrics.noiseSource = noiseSource;
 		HexMetrics.InitializeHashGrid(seed);
-		CreateMap(cellCountX, cellCountZ);
+        HexUnit.unitPrefab = unitPrefab;
+        CreateMap(cellCountX, cellCountZ);
 	}
 
 	public bool CreateMap (int x, int z) {
@@ -39,6 +40,7 @@ public class HexGrid : MonoBehaviour {
 		}
 
         ClearPath();
+        ClearUnits();
 
         if (chunks != null) {
 			for (int i = 0; i < chunks.Length; i++) {
@@ -80,7 +82,8 @@ public class HexGrid : MonoBehaviour {
 		if (!HexMetrics.noiseSource) {
 			HexMetrics.noiseSource = noiseSource;
 			HexMetrics.InitializeHashGrid(seed);
-		}
+            HexUnit.unitPrefab = unitPrefab;
+        }
 	}
 
 	public HexCell GetCell (Vector3 position) {
@@ -164,12 +167,18 @@ public class HexGrid : MonoBehaviour {
 		for (int i = 0; i < cells.Length; i++) {
 			cells[i].Save(writer);
 		}
-	}
+
+        writer.Write(units.Count);
+        for (int i = 0; i < units.Count; i++) {
+            units[i].Save(writer);
+        }
+    }
 
 	public void Load (BinaryReader reader, int header) {
         ClearPath();
+        ClearUnits();
         int x = 20, z = 15;
-		if (header >= 1) {
+		if (header >= 2) {
 			x = reader.ReadInt32();
 			z = reader.ReadInt32();
 		}
@@ -185,7 +194,12 @@ public class HexGrid : MonoBehaviour {
 		for (int i = 0; i < chunks.Length; i++) {
 			chunks[i].Refresh();
 		}
-	}
+
+        int unitCount = reader.ReadInt32();
+        for (int i = 0; i < unitCount; i++) {
+            HexUnit.Load(reader, this);
+        }
+    }
 
 	public void FindPath (HexCell fromCell, HexCell toCell, int speed) {
 		//System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
@@ -313,4 +327,25 @@ public class HexGrid : MonoBehaviour {
         }
         currentPathFrom = currentPathTo = null;
     }
+
+    List<HexUnit> units = new List<HexUnit>();
+    void ClearUnits() {
+        for (int i = 0; i < units.Count; i++) {
+            units[i].Die();
+        }
+        units.Clear();
+    }
+    public void AddUnit(HexUnit unit, HexCell location, float orientation) {
+        units.Add(unit);
+        unit.transform.SetParent(transform, false);
+        unit.Location = location;
+        unit.Orientation = orientation;
+    }
+
+    public void RemoveUnit(HexUnit unit) {
+        units.Remove(unit);
+        unit.Die();
+    }
+
+    public HexUnit unitPrefab;
 }
