@@ -5,6 +5,8 @@ using System.IO;
 
 public class SaveLoadMenu : MonoBehaviour {
 
+	const int mapFileVersion = 3;
+
 	public Text menuLabel, actionButtonLabel;
 
 	public InputField nameInput;
@@ -116,6 +118,4 @@ public class SaveLoadMenu : MonoBehaviour {
 			}
 		}
 	}
-
-    const int mapFileVersion = 3;
 }
