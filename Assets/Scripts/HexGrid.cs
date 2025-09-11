@@ -235,6 +235,9 @@ public class HexGrid : MonoBehaviour {
 			}
 		}
 
+		bool originalImmediateMode = cellShaderData.ImmediateMode;
+		cellShaderData.ImmediateMode = true;
+
 		for (int i = 0; i < cells.Length; i++) {
 			cells[i].Load(reader, header);
 		}
@@ -248,6 +251,8 @@ public class HexGrid : MonoBehaviour {
 				HexUnit.Load(reader, this);
 			}
 		}
+
+		cellShaderData.ImmediateMode = originalImmediateMode;
 	}
 
 	public List<HexCell> GetPath () {
