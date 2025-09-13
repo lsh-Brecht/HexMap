@@ -18,8 +18,12 @@ public class HexCell : MonoBehaviour {
 			if (elevation == value) {
 				return;
 			}
-			elevation = value;
-			RefreshPosition();
+            int originalViewElevation = ViewElevation;
+            elevation = value;
+            if (ViewElevation != originalViewElevation) {
+                ShaderData.ViewElevationChanged();
+            }
+            RefreshPosition();
 			ValidateRivers();
 
 			for (int i = 0; i < roads.Length; i++) {
@@ -40,8 +44,12 @@ public class HexCell : MonoBehaviour {
 			if (waterLevel == value) {
 				return;
 			}
-			waterLevel = value;
-			ValidateRivers();
+            int originalViewElevation = ViewElevation;
+            waterLevel = value;
+            if (ViewElevation != originalViewElevation) {
+                ShaderData.ViewElevationChanged();
+            }
+            ValidateRivers();
 			Refresh();
 		}
 	}
@@ -529,7 +537,7 @@ public class HexCell : MonoBehaviour {
 
     public bool IsVisible {
         get {
-            return visibility > 0;
+            return visibility > 0 && Explorable;
         }
     }
 
@@ -550,5 +558,28 @@ public class HexCell : MonoBehaviour {
         }
     }
 
-    public bool IsExplored { get; private set; }
+    public bool IsExplored {
+        get {
+            return explored && Explorable;
+        }
+        private set {
+            explored = value;
+        }
+    }
+
+    public int ViewElevation {
+        get {
+            return elevation >= waterLevel ? elevation : waterLevel;
+        }
+    }
+
+    public void ResetVisibility() {
+        if (visibility > 0) {
+            visibility = 0;
+            ShaderData.RefreshVisibility(this);
+        }
+    }
+    public bool Explorable { get; set; }
+
+    bool explored;
 }

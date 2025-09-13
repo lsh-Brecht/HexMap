@@ -194,27 +194,33 @@ public class HexUnit : MonoBehaviour {
 		}
 	}
 
-//	void OnDrawGizmos () {
-//		if (pathToTravel == null || pathToTravel.Count == 0) {
-//			return;
-//		}
-//
-//		Vector3 a, b, c = pathToTravel[0].Position;
-//
-//		for (int i = 1; i < pathToTravel.Count; i++) {
-//			a = c;
-//			b = pathToTravel[i - 1].Position;
-//			c = (b + pathToTravel[i].Position) * 0.5f;
-//			for (float t = 0f; t < 1f; t += 0.1f) {
-//				Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
-//			}
-//		}
-//
-//		a = c;
-//		b = pathToTravel[pathToTravel.Count - 1].Position;
-//		c = b;
-//		for (float t = 0f; t < 1f; t += 0.1f) {
-//			Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
-//		}
-//	}
+    public int VisionRange {
+        get {
+            return 3;
+        }
+    }
+
+    //	void OnDrawGizmos () {
+    //		if (pathToTravel == null || pathToTravel.Count == 0) {
+    //			return;
+    //		}
+    //
+    //		Vector3 a, b, c = pathToTravel[0].Position;
+    //
+    //		for (int i = 1; i < pathToTravel.Count; i++) {
+    //			a = c;
+    //			b = pathToTravel[i - 1].Position;
+    //			c = (b + pathToTravel[i].Position) * 0.5f;
+    //			for (float t = 0f; t < 1f; t += 0.1f) {
+    //				Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
+    //			}
+    //		}
+    //
+    //		a = c;
+    //		b = pathToTravel[pathToTravel.Count - 1].Position;
+    //		c = b;
+    //		for (float t = 0f; t < 1f; t += 0.1f) {
+    //			Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
+    //		}
+    //	}
 }

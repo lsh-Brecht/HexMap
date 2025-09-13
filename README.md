@@ -20,9 +20,11 @@ procedural mesh generation과 타일맵에서의 경로 탐색 알고리즘을 �
 
 <img src="images/hexMapScreenShot3.png" width="300">
 
+지형에 따라 다른 시야 제공
+
 ---
 🛠️ 향후 계획  
-- 맵 생성
+- 맵 생성(어떻게 바이옴을 만들 것인가?)
 - 유닛마다 다른 시야, 에디터 설정에서 전장의 안개 옵션 On/Off
 - Built-in 렌더링을 기준으로 작성된 텍스쳐를 새 유니티 버전(URP)에 맞게 수정 필요(가능할지 모르겠음)  
 ---
