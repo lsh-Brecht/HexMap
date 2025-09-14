@@ -26,9 +26,22 @@ public class NewMapMenu : MonoBehaviour {
 		CreateMap(80, 60);
 	}
 
-	void CreateMap (int x, int z) {
-		hexGrid.CreateMap(x, z);
-		HexMapCamera.ValidatePosition();
+    public HexMapGenerator mapGenerator;
+
+    void CreateMap (int x, int z) {
+        if (generateMaps) {
+            mapGenerator.GenerateMap(x, z);
+        }
+        else {
+            hexGrid.CreateMap(x, z);
+        }
+        HexMapCamera.ValidatePosition();
 		Close();
 	}
+
+    bool generateMaps = true;
+
+    public void ToggleMapGeneration(bool toggle) {
+        generateMaps = toggle;
+    }
 }

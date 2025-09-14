@@ -454,4 +454,12 @@ public class HexGrid : MonoBehaviour {
             IncreaseVisibility(unit.Location, unit.VisionRange);
         }
     }
+
+    public HexCell GetCell(int xOffset, int zOffset) {
+        return cells[xOffset + zOffset * cellCountX];
+    }
+
+    public HexCell GetCell(int cellIndex) {
+        return cells[cellIndex];
+    }
 }
