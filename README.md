@@ -16,16 +16,18 @@ procedural mesh generation과 타일맵에서의 경로 탐색 알고리즘을 �
 
 <img src="images/hexMapScreenShot2.png" width="300">  
 
-간단한 전장의 안개
+간단한 전장의 안개(부드러워 보이는 효과)
 
 <img src="images/hexMapScreenShot3.png" width="300">
 
-지형에 따라 다른 시야 제공
+간단한 맵 생성(높이에 따라 다른 지형 텍스쳐를 사용하는 원시적인 방법)
+
+<img src="images/hexMapScreenShot4.png" width="500">
 
 ---
 🛠️ 향후 계획  
-- 맵 생성(어떻게 바이옴을 만들 것인가?)
-- 유닛마다 다른 시야, 에디터 설정에서 전장의 안개 옵션 On/Off
+- 맵 생성(어떻게 더 복잡한 바이옴을 만들 것인가?)
+- 유닛마다 다른 시야와 유닛을 이용한 도시, 숲, 도로 등 상호작용
 - Built-in 렌더링을 기준으로 작성된 텍스쳐를 새 유니티 버전(URP)에 맞게 수정 필요(가능할지 모르겠음)  
 ---
 📚 참고 자료  

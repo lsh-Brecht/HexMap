@@ -16,6 +16,8 @@ public class HexMapGenerator : MonoBehaviour
     public int chunkSizeMax = 100;
     [Range(5, 95)]
     public int landPercentage = 50;
+    [Range(1, 5)]
+    public int waterLevel = 3;
 
     public void GenerateMap(int x, int z) {
         cellCount = x * z;
@@ -23,7 +25,11 @@ public class HexMapGenerator : MonoBehaviour
         if (searchFrontier == null) {
             searchFrontier = new HexCellPriorityQueue();
         }
+        for (int i = 0; i < cellCount; i++) {
+            grid.GetCell(i).WaterLevel = waterLevel;
+        }
         CreateLand();
+        SetTerrainType();
         for (int i = 0; i < cellCount; i++) {
             grid.GetCell(i).SearchPhase = 0;
         }
@@ -40,11 +46,9 @@ public class HexMapGenerator : MonoBehaviour
         int size = 0;
         while (size < chunkSize && searchFrontier.Count > 0) {
             HexCell current = searchFrontier.Dequeue();
-            if (current.TerrainTypeIndex == 0) {
-                current.TerrainTypeIndex = 1; //grass
-                if (--budget == 0) {
-                    break;
-                }
+            current.Elevation += 1;
+            if (current.Elevation == waterLevel && --budget == 0) {
+                break;
             }
             size += 1;
 
@@ -72,6 +76,16 @@ public class HexMapGenerator : MonoBehaviour
             landBudget = RaiseTerrain(
                 Random.Range(chunkSizeMin, chunkSizeMax + 1), landBudget
             );
+        }
+    }
+
+    void SetTerrainType() {
+        for (int i = 0; i < cellCount; i++) {
+            HexCell cell = grid.GetCell(i);
+            //terrain combination and water
+            if (!cell.IsUnderwater) {
+                cell.TerrainTypeIndex = cell.Elevation - cell.WaterLevel;
+            }
         }
     }
 }
