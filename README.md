@@ -24,8 +24,13 @@ procedural mesh generation과 타일맵에서의 경로 탐색 알고리즘을 �
 
 <img src="images/hexMapScreenShot4.png" width="500">
 
+시드를 이용한 맵 생성(대륙)
+
+<img src="images/hexMapScreenShot5.png" width="500">
+
 ---
 🛠️ 향후 계획  
+- 자연스러운 path finding을 위한 밸런싱
 - 맵 생성(어떻게 더 복잡한 바이옴을 만들 것인가?)
 - 유닛마다 다른 시야와 유닛을 이용한 도시, 숲, 도로 등 상호작용
 - Built-in 렌더링을 기준으로 작성된 텍스쳐를 새 유니티 버전(URP)에 맞게 수정 필요(가능할지 모르겠음)  
