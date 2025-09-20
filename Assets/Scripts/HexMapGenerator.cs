@@ -63,7 +63,13 @@ public class HexMapGenerator : MonoBehaviour {
 
 	List<MapRegion> regions;
 
-	public void GenerateMap (int x, int z) {
+    [Range(0f, 1f)]
+    public float evaporation = 0.5f;
+
+    [Range(0f, 1f)]
+    public float precipitationFactor = 0.25f;
+
+    public void GenerateMap (int x, int z) {
 		Random.State originalRandomState = Random.state;
 		if (!useFixedSeed) {
 			seed = Random.Range(0, int.MaxValue);
@@ -84,7 +90,8 @@ public class HexMapGenerator : MonoBehaviour {
 		CreateRegions();
 		CreateLand();
 		ErodeLand();
-		SetTerrainType();
+        CreateClimate();
+        SetTerrainType();
 		for (int i = 0; i < cellCount; i++) {
 			grid.GetCell(i).SearchPhase = 0;
 		}
@@ -355,7 +362,8 @@ public class HexMapGenerator : MonoBehaviour {
 			if (!cell.IsUnderwater) {
 				cell.TerrainTypeIndex = cell.Elevation - cell.WaterLevel;
 			}
-		}
+            cell.SetMapData(climate[i].clouds);
+        }
 	}
 
 	HexCell GetRandomCell (MapRegion region) {
@@ -364,4 +372,50 @@ public class HexMapGenerator : MonoBehaviour {
 			Random.Range(region.zMin, region.zMax)
 		);
 	}
+
+    struct ClimateData
+    {
+        public float clouds;
+    }
+
+    List<ClimateData> climate = new List<ClimateData>();
+
+    void CreateClimate() {
+        climate.Clear();
+        ClimateData initialData = new ClimateData();
+        for (int i = 0; i < cellCount; i++) {
+            climate.Add(initialData);
+        }
+        for (int cycle = 0; cycle < 30; cycle++) {
+            for (int i = 0; i < cellCount; i++) {
+                EvolveClimate(i);
+            }
+        }
+    }
+
+    void EvolveClimate(int cellIndex) {
+        HexCell cell = grid.GetCell(cellIndex);
+        ClimateData cellClimate = climate[cellIndex];
+
+        if (cell.IsUnderwater) {
+            cellClimate.clouds += evaporation;
+        }
+
+        float precipitation = cellClimate.clouds * precipitationFactor;
+        cellClimate.clouds -= precipitation;
+
+        float cloudDispersal = cellClimate.clouds * (1f / 6f);
+        for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+            HexCell neighbor = cell.GetNeighbor(d);
+            if (!neighbor) {
+                continue;
+            }
+            ClimateData neighborClimate = climate[neighbor.Index];
+            neighborClimate.clouds += cloudDispersal;
+            climate[neighbor.Index] = neighborClimate;
+        }
+        cellClimate.clouds = 0f;
+
+        climate[cellIndex] = cellClimate;
+    }
 }

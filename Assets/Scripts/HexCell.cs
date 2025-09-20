@@ -585,4 +585,8 @@ public class HexCell : MonoBehaviour {
     public bool Explorable { get; set; }
 
     bool explored;
+
+    public void SetMapData(float data) {
+        ShaderData.SetMapData(this, data);
+    }
 }
