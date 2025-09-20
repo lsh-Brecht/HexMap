@@ -51,7 +51,7 @@ public class HexMapGenerator : MonoBehaviour {
 	[Range(0, 100)]
 	public int erosionPercentage = 50;
 
-	HexCellPriorityQueue searchFrontier;
+    HexCellPriorityQueue searchFrontier;
 
 	int searchFrontierPhase;
 
@@ -64,10 +64,16 @@ public class HexMapGenerator : MonoBehaviour {
 	List<MapRegion> regions;
 
     [Range(0f, 1f)]
-    public float evaporation = 0.5f;
+    public float evaporationFactor = 0.5f;
 
     [Range(0f, 1f)]
     public float precipitationFactor = 0.25f;
+
+    [Range(0f, 1f)]
+    public float runoffFactor = 0.25f;
+
+    [Range(0f, 1f)]
+    public float seepageFactor = 0.125f;
 
     public void GenerateMap (int x, int z) {
 		Random.State originalRandomState = Random.state;
@@ -362,7 +368,7 @@ public class HexMapGenerator : MonoBehaviour {
 			if (!cell.IsUnderwater) {
 				cell.TerrainTypeIndex = cell.Elevation - cell.WaterLevel;
 			}
-            cell.SetMapData(climate[i].clouds);
+            cell.SetMapData(climate[i].moisture);
         }
 	}
 
@@ -375,7 +381,7 @@ public class HexMapGenerator : MonoBehaviour {
 
     struct ClimateData
     {
-        public float clouds;
+        public float clouds, moisture;
     }
 
     List<ClimateData> climate = new List<ClimateData>();
@@ -398,13 +404,22 @@ public class HexMapGenerator : MonoBehaviour {
         ClimateData cellClimate = climate[cellIndex];
 
         if (cell.IsUnderwater) {
+            cellClimate.moisture = 1f;
+            cellClimate.clouds += evaporationFactor;
+        }
+        else {
+            float evaporation = cellClimate.moisture * evaporationFactor;
+            cellClimate.moisture -= evaporation;
             cellClimate.clouds += evaporation;
         }
 
         float precipitation = cellClimate.clouds * precipitationFactor;
         cellClimate.clouds -= precipitation;
+        cellClimate.moisture += precipitation;
 
         float cloudDispersal = cellClimate.clouds * (1f / 6f);
+        float runoff = cellClimate.moisture * runoffFactor * (1f / 6f);
+        float seepage = cellClimate.moisture * seepageFactor * (1f / 6f);
         for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
             HexCell neighbor = cell.GetNeighbor(d);
             if (!neighbor) {
@@ -412,6 +427,15 @@ public class HexMapGenerator : MonoBehaviour {
             }
             ClimateData neighborClimate = climate[neighbor.Index];
             neighborClimate.clouds += cloudDispersal;
+            int elevationDelta = neighbor.ViewElevation - cell.ViewElevation;
+            if (elevationDelta < 0) {
+                cellClimate.moisture -= runoff;
+                neighborClimate.moisture += runoff;
+            }
+            else if (elevationDelta == 0) {
+                cellClimate.moisture -= seepage;
+                neighborClimate.moisture += seepage;
+            }
             climate[neighbor.Index] = neighborClimate;
         }
         cellClimate.clouds = 0f;
