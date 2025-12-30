@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class HexMapGenerator : MonoBehaviour {
@@ -81,6 +81,7 @@ public class HexMapGenerator : MonoBehaviour {
     [Range(0f, 1f)]
     public float startingMoisture = 0.1f;
 
+    //맵 생성 시작. 시드를 설정하고 관련 데이터를 초기화하며 순차적으로 실행.
     public void GenerateMap (int x, int z) {
 		Random.State originalRandomState = Random.state;
 		if (!useFixedSeed) {
@@ -111,7 +112,8 @@ public class HexMapGenerator : MonoBehaviour {
 		Random.state = originalRandomState;
 	}
 
-	void CreateRegions () {
+    //맵을 여러 개의 Region으로 나눕니다. Region 수에 따라 다르게 분할합니다.
+    void CreateRegions () {
 		if (regions == null) {
 			regions = new List<MapRegion>();
 		}
@@ -182,6 +184,7 @@ public class HexMapGenerator : MonoBehaviour {
 		}
 	}
 
+    //설정된 landPercentage를 채울 때까지 지형 고도를 바꿉니다.
 	void CreateLand () {
 		int landBudget = Mathf.RoundToInt(cellCount * landPercentage * 0.01f);
 		for (int guard = 0; guard < 10000; guard++) {
@@ -205,7 +208,8 @@ public class HexMapGenerator : MonoBehaviour {
 		}
 	}
 
-	int RaiseTerrain (int chunkSize, int budget, MapRegion region) {
+    //특정 Region 내에서 육지를 만듭니다.
+    int RaiseTerrain (int chunkSize, int budget, MapRegion region) {
 		searchFrontierPhase += 1;
 		HexCell firstCell = GetRandomCell(region);
 		firstCell.SearchPhase = searchFrontierPhase;
@@ -247,7 +251,8 @@ public class HexMapGenerator : MonoBehaviour {
 		return budget;
 	}
 
-	int SinkTerrain (int chunkSize, int budget, MapRegion region) {
+    //반대로 Region에서 바다나 호수를 만듭니다.
+    int SinkTerrain (int chunkSize, int budget, MapRegion region) {
 		searchFrontierPhase += 1;
 		HexCell firstCell = GetRandomCell(region);
 		firstCell.SearchPhase = searchFrontierPhase;
@@ -289,6 +294,7 @@ public class HexMapGenerator : MonoBehaviour {
 		return budget;
 	}
 
+    //자연스러운 침식을 시뮬레이션하기 위해 급격한 경사를 깎아냅니다.
 	void ErodeLand () {
 		List<HexCell> erodibleCells = ListPool<HexCell>.Get();
 		for (int i = 0; i < cellCount; i++) {
@@ -343,6 +349,7 @@ public class HexMapGenerator : MonoBehaviour {
 		ListPool<HexCell>.Add(erodibleCells);
 	}
 
+    //높이 차이가 큰 이웃 셀이 있는지 확인합니다 = 침식 여부
 	bool IsErodible (HexCell cell) {
 		int erodibleElevation = cell.Elevation - 2;
 		for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
@@ -368,6 +375,7 @@ public class HexMapGenerator : MonoBehaviour {
 		return target;
 	}
 
+    //Moisture에 따라 Terrain을 설정합니다.
     void SetTerrainType() {
         for (int i = 0; i < cellCount; i++) {
             HexCell cell = grid.GetCell(i);
@@ -411,6 +419,7 @@ public class HexMapGenerator : MonoBehaviour {
     List<ClimateData> climate = new List<ClimateData>();
     List<ClimateData> nextClimate = new List<ClimateData>();
 
+    //기후를 시뮬레이션합니다.
     void CreateClimate() {
         climate.Clear();
         nextClimate.Clear();
@@ -431,6 +440,7 @@ public class HexMapGenerator : MonoBehaviour {
         }
     }
 
+    //개별 cell의 기후를 계산하며 갱신합니다
     void EvolveClimate(int cellIndex) {
         HexCell cell = grid.GetCell(cellIndex);
         ClimateData cellClimate = climate[cellIndex];
