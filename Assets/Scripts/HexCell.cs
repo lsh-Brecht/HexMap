@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 
@@ -10,7 +10,11 @@ public class HexCell : MonoBehaviour {
 
 	public HexGridChunk chunk;
 
-	public int Elevation {
+    //지형의 높이를 관리합니다.
+    //외부에서는 Elevation이라는 속성으로 접근하도록 제한.
+    //내부적으로는 elevation 필드를 사용.
+    //왜why. Elevation을 변경할 때마다 메쉬 갱신, 위치 갱신, 강과 도로의 유효성 검사 등을 수행해야 하기 때문.
+    public int Elevation {
 		get {
 			return elevation;
 		}
@@ -24,11 +28,11 @@ public class HexCell : MonoBehaviour {
                 ShaderData.ViewElevationChanged();
             }
             RefreshPosition();
-			ValidateRivers();
+			ValidateRivers(); // 높이 변경으로 인해 강이 거슬러 흐르게 되면 제거합니다.
 
 			for (int i = 0; i < roads.Length; i++) {
 				if (roads[i] && GetElevationDifference((HexDirection)i) > 1) {
-					SetRoad(i, false);
+					SetRoad(i, false); // 높이 차이가 너무 커지면 도로를 끊습니다.
 				}
 			}
 
@@ -36,6 +40,7 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
+    //수위를 관리합니다.
 	public int WaterLevel {
 		get {
 			return waterLevel;
@@ -54,7 +59,9 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
-	public bool IsUnderwater {
+    //현재 셀이 물에 잠겨있는지 여부.
+    //이런 방식으로 굳이 구현한 이유 : cell.IsUnderwater = true; 같은 코드가 불가능해지며 모호함이 줄어든다.
+    public bool IsUnderwater {
 		get {
 			return waterLevel > elevation;
 		}
@@ -144,6 +151,7 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
+    //도시, 농장, 식물 등 맵의 장식 요소들을 관리하는 속성입니다.
 	public int UrbanLevel {
 		get {
 			return urbanLevel;
@@ -223,6 +231,7 @@ public class HexCell : MonoBehaviour {
 		}
 	}
 
+    //Pathfinding 알고리즘에서 사용되는 속성들입니다.
 	public int Distance {
 		get {
 			return distance;
@@ -266,17 +275,21 @@ public class HexCell : MonoBehaviour {
 	[SerializeField]
 	bool[] roads;
 
+    //특정 방향의 이웃 셀을 반환합니다.
 	public HexCell GetNeighbor (HexDirection direction) {
 		return neighbors[(int)direction];
 	}
 
+    //이웃 관계를 설정합니다.
 	public void SetNeighbor (HexDirection direction, HexCell cell) {
 		neighbors[(int)direction] = cell;
 		cell.neighbors[(int)direction.Opposite()] = this;
 	}
 
+    //이웃과의 고도 차이에 따른 경계 타입(평지, 경사, 절벽)을 반환합니다.
 	public HexEdgeType GetEdgeType (HexDirection direction) {
-		return HexMetrics.GetEdgeType(
+        //같으면 Flat, 1 차이면 Slope, 2 이상 차이면 Cliff
+        return HexMetrics.GetEdgeType(
 			elevation, neighbors[(int)direction].elevation
 		);
 	}
@@ -322,6 +335,7 @@ public class HexCell : MonoBehaviour {
 		RemoveIncomingRiver();
 	}
 
+    //강이 흐르는 방향을 설정합니다. 지형 조건이 맞지 않으면 중단하거나 기존 강을 수정합니다.
 	public void SetOutgoingRiver (HexDirection direction) {
 		if (hasOutgoingRiver && outgoingRiver == direction) {
 			return;
@@ -352,6 +366,7 @@ public class HexCell : MonoBehaviour {
 		return roads[(int)direction];
 	}
 
+    //도로를 추가합니다. 강이 있거나 고도 차가 너무 크면 수정하지 않습니다.
 	public void AddRoad (HexDirection direction) {
 		if (
 			!roads[(int)direction] && !HasRiverThroughEdge(direction) &&
@@ -403,6 +418,9 @@ public class HexCell : MonoBehaviour {
 		RefreshSelfOnly();
 	}
 
+    //셀의 3D 월드 좌표를 갱신합니다.
+	//노이즈를 적용하여 자연스럽게 보이도록 위치를 잡습니다.
+	//위에서 수직으로 내려봤을 때 약간 삐뚤빼뚤하게 보이게 됩니다.
 	void RefreshPosition () {
 		Vector3 position = transform.localPosition;
 		position.y = elevation * HexMetrics.elevationStep;
@@ -416,6 +434,7 @@ public class HexCell : MonoBehaviour {
 		uiRect.localPosition = uiPosition;
 	}
 
+    //셀의 상태가 변경되었을 때 청크를 갱신하여 메쉬를 다시 그리게 합니다.
 	void Refresh () {
 		if (chunk) {
 			chunk.Refresh();
@@ -438,6 +457,7 @@ public class HexCell : MonoBehaviour {
         }
     }
 
+    //셀 데이터를 바이너리로 save.
 	public void Save (BinaryWriter writer) {
 		writer.Write((byte)terrainTypeIndex);
         writer.Write((byte)(elevation + 127));
@@ -472,6 +492,7 @@ public class HexCell : MonoBehaviour {
         writer.Write(IsExplored);
     }
 
+    //바이너리 데이터로부터 셀 정보를 load.
 	public void Load (BinaryReader reader, int header) {
 		terrainTypeIndex = reader.ReadByte();
         ShaderData.RefreshTerrain(this);
@@ -538,6 +559,7 @@ public class HexCell : MonoBehaviour {
 
     public int Index { get; set; }
 
+    //현재 셀이 시야에 들어와 있는지 여부를 반환합니다.
     public bool IsVisible {
         get {
             return visibility > 0 && Explorable;
@@ -546,6 +568,7 @@ public class HexCell : MonoBehaviour {
 
 	int visibility;
 
+    //Fog of War를 처리합니다.
     public void IncreaseVisibility() {
         visibility += 1;
         if (visibility == 1) {
@@ -570,6 +593,7 @@ public class HexCell : MonoBehaviour {
         }
     }
 
+    //시야 계산에 사용되는 높이입니다. 물에 잠겨있다면 수면 높이를 반환합니다.
     public int ViewElevation {
         get {
             return elevation >= waterLevel ? elevation : waterLevel;
