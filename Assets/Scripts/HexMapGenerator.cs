@@ -55,7 +55,7 @@ public class HexMapGenerator : MonoBehaviour {
 
 	int searchFrontierPhase;
 
-	int cellCount;
+	int cellCount, landCells;
 
 	struct MapRegion {
 		public int xMin, xMax, zMin, zMax;
@@ -104,6 +104,7 @@ public class HexMapGenerator : MonoBehaviour {
 		CreateLand();
 		ErodeLand();
         CreateClimate();
+        CreateRivers();
         SetTerrainType();
 		for (int i = 0; i < cellCount; i++) {
 			grid.GetCell(i).SearchPhase = 0;
@@ -187,7 +188,8 @@ public class HexMapGenerator : MonoBehaviour {
     //설정된 landPercentage를 채울 때까지 지형 고도를 바꿉니다.
 	void CreateLand () {
 		int landBudget = Mathf.RoundToInt(cellCount * landPercentage * 0.01f);
-		for (int guard = 0; guard < 10000; guard++) {
+        landCells = landBudget;
+        for (int guard = 0; guard < 10000; guard++) {
 			bool sink = Random.value < sinkProbability;
 			for (int i = 0; i < regions.Count; i++) {
 				MapRegion region = regions[i];
@@ -204,7 +206,8 @@ public class HexMapGenerator : MonoBehaviour {
 			}
 		}
 		if (landBudget > 0) {
-			Debug.LogWarning("Failed to use up " + landBudget + " land budget.");
+            Debug.LogWarning("Failed to use up " + landBudget + " land budget.");
+            landCells -= landBudget;
 		}
 	}
 
@@ -400,7 +403,6 @@ public class HexMapGenerator : MonoBehaviour {
             else {
                 cell.TerrainTypeIndex = 2;
             }
-            cell.SetMapData(moisture);
         }
     }
 
@@ -502,4 +504,59 @@ public class HexMapGenerator : MonoBehaviour {
     }
 
     public HexDirection windDirection = HexDirection.NW;
+
+    void CreateRivers() {
+        List<HexCell> riverOrigins = ListPool<HexCell>.Get();
+        for (int i = 0; i < cellCount; i++) {
+            HexCell cell = grid.GetCell(i);
+            if (cell.IsUnderwater) {
+                continue;
+            }
+            ClimateData data = climate[i];
+            float weight =
+                data.moisture * (cell.Elevation - waterLevel) /
+                (elevationMaximum - waterLevel);
+            if (weight > 0.75f) {
+                riverOrigins.Add(cell);
+                riverOrigins.Add(cell);
+            }
+            if (weight > 0.5f) {
+                riverOrigins.Add(cell);
+            }
+            if (weight > 0.25f) {
+                riverOrigins.Add(cell);
+            }
+        }
+        int riverBudget = Mathf.RoundToInt(landCells * riverPercentage * 0.01f);
+        while (riverBudget > 0 && riverOrigins.Count > 0) {
+            int index = Random.Range(0, riverOrigins.Count);
+            int lastIndex = riverOrigins.Count - 1;
+            HexCell origin = riverOrigins[index];
+            riverOrigins[index] = riverOrigins[lastIndex];
+            riverOrigins.RemoveAt(lastIndex);
+            if (!origin.HasRiver) {
+                riverBudget -= CreateRiver(origin);
+            }
+        }
+
+        if (riverBudget > 0) {
+            Debug.LogWarning("Failed to use up river budget.");
+        }
+        ListPool<HexCell>.Add(riverOrigins);
+    }
+
+    int CreateRiver(HexCell origin) {
+        int length = 1;
+        HexCell cell = origin;
+        while (!cell.IsUnderwater) {
+            HexDirection direction = (HexDirection)Random.Range(0, 6);
+            cell.SetOutgoingRiver(direction);
+            length += 1;
+            cell = cell.GetNeighbor(direction);
+        }
+        return length;
+    }
+
+    [Range(0, 20)]
+    public int riverPercentage = 10;
 }
