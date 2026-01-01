@@ -535,7 +535,17 @@ public class HexMapGenerator : MonoBehaviour {
             riverOrigins[index] = riverOrigins[lastIndex];
             riverOrigins.RemoveAt(lastIndex);
             if (!origin.HasRiver) {
-                riverBudget -= CreateRiver(origin);
+                bool isValidOrigin = true;
+                for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+                    HexCell neighbor = origin.GetNeighbor(d);
+                    if (neighbor && (neighbor.HasRiver || neighbor.IsUnderwater)) {
+                        isValidOrigin = false;
+                        break;
+                    }
+                }
+				if (isValidOrigin) {
+					riverBudget -= CreateRiver(origin);
+				}
             }
         }
 
@@ -548,10 +558,60 @@ public class HexMapGenerator : MonoBehaviour {
     int CreateRiver(HexCell origin) {
         int length = 1;
         HexCell cell = origin;
+        HexDirection direction = HexDirection.NE;
         while (!cell.IsUnderwater) {
-            HexDirection direction = (HexDirection)Random.Range(0, 6);
+            int minNeighborElevation = int.MaxValue;
+            flowDirections.Clear();
+            for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+                HexCell neighbor = cell.GetNeighbor(d);
+                if (!neighbor) {
+                    continue;
+                }
+                if (neighbor.Elevation < minNeighborElevation) {
+                    minNeighborElevation = neighbor.Elevation;
+                }
+                if (neighbor == origin || neighbor.HasIncomingRiver) {
+                    continue;
+                }
+                int delta = neighbor.Elevation - cell.Elevation;
+                if (delta > 0) {
+                    continue;
+                }
+                if (neighbor.HasOutgoingRiver) {
+                    cell.SetOutgoingRiver(d);
+                    return length;
+                }
+                if (delta < 0) {
+                    flowDirections.Add(d);
+                    flowDirections.Add(d);
+                    flowDirections.Add(d);
+                }
+                if (length == 1 || (d != direction.Next2() && d != direction.Previous2()))
+				{
+                    flowDirections.Add(d);
+                }
+                flowDirections.Add(d);
+            }
+            if (flowDirections.Count == 0) {
+                if (length == 1) {
+                    return 0;
+                }
+                if (minNeighborElevation >= cell.Elevation) {
+                    cell.WaterLevel = minNeighborElevation;
+                    if (minNeighborElevation == cell.Elevation) {
+                        cell.Elevation = minNeighborElevation - 1;
+                    }
+                }
+                break;
+            }
+            direction = flowDirections[Random.Range(0, flowDirections.Count)];
             cell.SetOutgoingRiver(direction);
             length += 1;
+
+            if (minNeighborElevation >= cell.Elevation && Random.value < extraLakeProbability) {
+                cell.WaterLevel = cell.Elevation;
+                cell.Elevation -= 1;
+            }
             cell = cell.GetNeighbor(direction);
         }
         return length;
@@ -559,4 +619,9 @@ public class HexMapGenerator : MonoBehaviour {
 
     [Range(0, 20)]
     public int riverPercentage = 10;
+
+    List<HexDirection> flowDirections = new List<HexDirection>();
+
+    [Range(0f, 1f)]
+    public float extraLakeProbability = 0.25f;
 }
