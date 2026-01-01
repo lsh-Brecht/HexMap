@@ -380,28 +380,87 @@ public class HexMapGenerator : MonoBehaviour {
 
     //Moisture에 따라 Terrain을 설정합니다.
     void SetTerrainType() {
+        temperatureJitterChannel = Random.Range(0, 4);
+        int rockDesertElevation =
+			elevationMaximum - (elevationMaximum - waterLevel) / 2;
         for (int i = 0; i < cellCount; i++) {
             HexCell cell = grid.GetCell(i);
+            float temperature = DetermineTemperature(cell);
             float moisture = climate[i].moisture;
             if (!cell.IsUnderwater) {
-                if (moisture < 0.05f) {
-                    cell.TerrainTypeIndex = 4;
+                int t = 0;
+                for (; t < temperatureBands.Length; t++) {
+                    if (temperature < temperatureBands[t]) {
+                        break;
+                    }
                 }
-                else if (moisture < 0.12f) {
-                    cell.TerrainTypeIndex = 0;
+                int m = 0;
+                for (; m < moistureBands.Length; m++) {
+                    if (moisture < moistureBands[m]) {
+                        break;
+                    }
                 }
-                else if (moisture < 0.28f) {
-                    cell.TerrainTypeIndex = 3;
+                Biome cellBiome = biomes[t * 4 + m];
+                if (cellBiome.terrain == 0) {
+                    if (cell.Elevation >= rockDesertElevation) {
+                        cellBiome.terrain = 3;
+                    }
                 }
-                else if (moisture < 0.85f) {
-                    cell.TerrainTypeIndex = 1;
+                else if (cell.Elevation == elevationMaximum) {
+                    cellBiome.terrain = 4;
                 }
-                else {
-                    cell.TerrainTypeIndex = 2;
+                if (cellBiome.terrain == 4) {
+                    cellBiome.plant = 0;
                 }
+                else if (cellBiome.plant < 3 && cell.HasRiver) {
+                    cellBiome.plant += 1;
+                }
+                cell.TerrainTypeIndex = cellBiome.terrain;
+                cell.PlantLevel = cellBiome.plant;
             }
             else {
-                cell.TerrainTypeIndex = 2;
+                int terrain;
+                if (cell.Elevation == waterLevel - 1) {
+                    int cliffs = 0, slopes = 0;
+                    for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+                        HexCell neighbor = cell.GetNeighbor(d);
+                        if (!neighbor) {
+                            continue;
+                        }
+                        int delta = neighbor.Elevation - cell.WaterLevel;
+                        if (delta == 0) {
+                            slopes += 1;
+                        }
+                        else if (delta > 0) {
+                            cliffs += 1;
+                        }
+                    }
+                    if (cliffs + slopes > 3) {
+                        terrain = 1;
+                    }
+                    else if (cliffs > 0) {
+                        terrain = 3;
+                    }
+                    else if (slopes > 0) {
+                        terrain = 0;
+                    }
+                    else {
+                        terrain = 1;
+                    }
+                }
+                else if (cell.Elevation >= waterLevel) {
+                    terrain = 1;
+                }
+                else if (cell.Elevation < 0) {
+                    terrain = 3;
+                }
+                else {
+                    terrain = 2;
+                }
+                if (terrain == 1 && temperature < temperatureBands[0]) {
+                    terrain = 2;
+                }
+                cell.TerrainTypeIndex = terrain;
             }
         }
     }
@@ -624,4 +683,63 @@ public class HexMapGenerator : MonoBehaviour {
 
     [Range(0f, 1f)]
     public float extraLakeProbability = 0.25f;
+
+    float DetermineTemperature(HexCell cell) {
+        float latitude = (float)cell.coordinates.Z / grid.cellCountZ;
+        if (hemisphere == HemisphereMode.Both) {
+            latitude *= 2f;
+            if (latitude > 1f) {
+                latitude = 2f - latitude;
+            }
+        }
+        else if (hemisphere == HemisphereMode.North) {
+            latitude = 1f - latitude;
+        }
+
+        float temperature =
+            Mathf.LerpUnclamped(lowTemperature, highTemperature, latitude);
+        temperature *= 1f - (cell.ViewElevation - waterLevel) / (elevationMaximum - waterLevel + 1f);
+        float jitter = HexMetrics.SampleNoise(cell.Position * 0.1f)[temperatureJitterChannel];
+        temperature += (jitter * 2f - 1f) * temperatureJitter;
+        return temperature;
+    }
+
+    [Range(0f, 1f)]
+    public float lowTemperature = 0f;
+
+    [Range(0f, 1f)]
+    public float highTemperature = 1f;
+
+    public enum HemisphereMode
+    {
+        Both, North, South
+    }
+
+    public HemisphereMode hemisphere;
+
+    [Range(0f, 1f)]
+    public float temperatureJitter = 0.1f;
+
+    int temperatureJitterChannel;
+
+    static float[] temperatureBands = { 0.1f, 0.3f, 0.6f };
+
+    static float[] moistureBands = { 0.12f, 0.28f, 0.85f };
+
+    struct Biome
+    {
+        public int terrain, plant;
+
+        public Biome(int terrain, int plant) {
+            this.terrain = terrain;
+            this.plant = plant;
+        }
+    }
+
+    static Biome[] biomes = {
+        new Biome(0, 0), new Biome(4, 0), new Biome(4, 0), new Biome(4, 0),
+        new Biome(0, 0), new Biome(2, 0), new Biome(2, 1), new Biome(2, 2),
+        new Biome(0, 0), new Biome(1, 0), new Biome(1, 1), new Biome(1, 2),
+        new Biome(0, 0), new Biome(1, 1), new Biome(1, 2), new Biome(1, 3)
+    };
 }
