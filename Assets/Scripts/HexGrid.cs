@@ -6,11 +6,11 @@ using System.Collections.Generic;
 
 public class HexGrid : MonoBehaviour {
 
-	public int cellCountX = 20, cellCountZ = 15;
+	public int cellCountX = 20, cellCountZ = 15; // 맵의 가로, 세로 셀 개수
 
 	public HexCell cellPrefab;
 	public Text cellLabelPrefab;
-	public HexGridChunk chunkPrefab;
+	public HexGridChunk chunkPrefab;//렌더링 최적화를 위한 청크 프리팹
 	public HexUnit unitPrefab;
 
 	public Texture2D noiseSource;
@@ -23,13 +23,12 @@ public class HexGrid : MonoBehaviour {
 		}
 	}
 
-	HexGridChunk[] chunks;
-	HexCell[] cells;
+	HexGridChunk[] chunks; //전체 청크
+	HexCell[] cells; //전체 셀
 
 	int chunkCountX, chunkCountZ;
 
-	HexCellPriorityQueue searchFrontier;
-
+	HexCellPriorityQueue searchFrontier; //pathfinding pq
 	int searchFrontierPhase;
 
 	HexCell currentPathFrom, currentPathTo;
@@ -48,6 +47,7 @@ public class HexGrid : MonoBehaviour {
         CreateMap(cellCountX, cellCountZ);
 	}
 
+	//유닛을 맵에 추가 / 제거
 	public void AddUnit (HexUnit unit, HexCell location, float orientation) {
 		units.Add(unit);
 		unit.Grid = this;
@@ -55,7 +55,6 @@ public class HexGrid : MonoBehaviour {
 		unit.Location = location;
 		unit.Orientation = orientation;
 	}
-
 	public void RemoveUnit (HexUnit unit) {
 		units.Remove(unit);
 		unit.Die();
@@ -125,6 +124,7 @@ public class HexGrid : MonoBehaviour {
         }
 	}
 
+	//raycast로 마우스 클릭 지점의 셀을 찾음
 	public HexCell GetCell (Ray ray) {
 		RaycastHit hit;
 		if (Physics.Raycast(ray, out hit)) {
@@ -133,6 +133,7 @@ public class HexGrid : MonoBehaviour {
 		return null;
 	}
 
+	//월드 좌표를 기준으로 해당 위치의 셀 반환
 	public HexCell GetCell (Vector3 position) {
 		position = transform.InverseTransformPoint(position);
 		HexCoordinates coordinates = HexCoordinates.FromPosition(position);
@@ -141,6 +142,7 @@ public class HexGrid : MonoBehaviour {
 		return cells[index];
 	}
 
+	//hex coordinate를 기준으로 셀을 반환
 	public HexCell GetCell (HexCoordinates coordinates) {
 		int z = coordinates.Z;
 		if (z < 0 || z >= cellCountZ) {
@@ -173,6 +175,7 @@ public class HexGrid : MonoBehaviour {
 
         cell.Explorable = x > 0 && z > 0 && x < cellCountX - 1 && z < cellCountZ - 1;
 
+        //hex이므로 6개 방향 neighbour 설정
         if (x > 0) {
 			cell.SetNeighbor(HexDirection.W, cells[i - 1]);
 		}
@@ -211,6 +214,7 @@ public class HexGrid : MonoBehaviour {
 		chunk.AddCell(localX + localZ * HexMetrics.chunkSizeX, cell);
 	}
 
+	//맵 데이터 저장
 	public void Save (BinaryWriter writer) {
 		writer.Write(cellCountX);
 		writer.Write(cellCountZ);
@@ -225,6 +229,7 @@ public class HexGrid : MonoBehaviour {
 		}
 	}
 
+	//맵 불러오기
 	public void Load (BinaryReader reader, int header) {
 		ClearPath();
 		ClearUnits();
@@ -259,6 +264,7 @@ public class HexGrid : MonoBehaviour {
 		cellShaderData.ImmediateMode = originalImmediateMode;
 	}
 
+	//현재 계산된 경로를 리스트로 반환
 	public List<HexCell> GetPath () {
 		if (!currentPathExists) {
 			return null;
@@ -290,6 +296,7 @@ public class HexGrid : MonoBehaviour {
 		currentPathFrom = currentPathTo = null;
 	}
 
+	// 경로를 하이라이트하고 이동에 필요한 코스트 표시
 	void ShowPath (int speed) {
 		if (currentPathExists) {
 			HexCell current = currentPathTo;
@@ -304,6 +311,7 @@ public class HexGrid : MonoBehaviour {
 		currentPathTo.EnableHighlight(Color.red);
 	}
 
+	//최단 경로 찾기
 	public void FindPath (HexCell fromCell, HexCell toCell, HexUnit unit) {
 		ClearPath();
 		currentPathFrom = fromCell;
@@ -312,6 +320,7 @@ public class HexGrid : MonoBehaviour {
 		ShowPath(unit.Speed);
 	}
 
+	//A* 알고리즘 기반 경로 탐색
 	bool Search (HexCell fromCell, HexCell toCell, HexUnit unit) {
 		int speed = unit.Speed;
 		searchFrontierPhase += 2;
@@ -377,6 +386,7 @@ public class HexGrid : MonoBehaviour {
 		return false;
 	}
 
+	//시야 증가 / 감소
 	public void IncreaseVisibility (HexCell fromCell, int range) {
 		List<HexCell> cells = GetVisibleCells(fromCell, range);
 		for (int i = 0; i < cells.Count; i++) {
@@ -384,7 +394,6 @@ public class HexGrid : MonoBehaviour {
 		}
 		ListPool<HexCell>.Add(cells);
 	}
-
 	public void DecreaseVisibility (HexCell fromCell, int range) {
 		List<HexCell> cells = GetVisibleCells(fromCell, range);
 		for (int i = 0; i < cells.Count; i++) {
