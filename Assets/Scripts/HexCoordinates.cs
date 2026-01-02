@@ -38,8 +38,8 @@ public struct HexCoordinates {
 
 	//Unity의 월드 좌표를 육각형 좌표로 변환.
 	public static HexCoordinates FromPosition (Vector3 position) {
-		float x = position.x / (HexMetrics.innerRadius * 2f);
-		float y = -x;
+        float x = position.x / HexMetrics.innerDiameter;
+        float y = -x;
 
 		float offset = position.z / (HexMetrics.outerRadius * 3f);
 		x -= offset;

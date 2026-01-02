@@ -82,7 +82,7 @@ public class HexMapGenerator : MonoBehaviour {
     public float startingMoisture = 0.1f;
 
     //맵 생성 시작. 시드를 설정하고 관련 데이터를 초기화하며 순차적으로 실행.
-    public void GenerateMap (int x, int z) {
+    public void GenerateMap (int x, int z, bool wrapping) {
 		Random.State originalRandomState = Random.state;
 		if (!useFixedSeed) {
 			seed = Random.Range(0, int.MaxValue);
@@ -93,7 +93,7 @@ public class HexMapGenerator : MonoBehaviour {
 		Random.InitState(seed);
 
 		cellCount = x * z;
-		grid.CreateMap(x, z);
+		grid.CreateMap(x, z, wrapping);
 		if (searchFrontier == null) {
 			searchFrontier = new HexCellPriorityQueue();
 		}

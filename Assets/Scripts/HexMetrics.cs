@@ -4,9 +4,10 @@ public static class HexMetrics {
     //육각형의 외접원 반지름(Outer Radius)에 대한 내접원 반지름(Inner Radius)의 비율
     public const float outerToInner = 0.866025404f; //sqrt(3) / 2
     public const float innerToOuter = 1f / outerToInner;
+    public const float innerDiameter = innerRadius * 2f;
 
-	//외접원 반지름의 크기
-	public const float outerRadius = 10f;
+    //외접원 반지름의 크기
+    public const float outerRadius = 10f;
 	//중심에서 변까지의 거리
 	public const float innerRadius = outerRadius * outerToInner;
 
@@ -208,4 +209,12 @@ public static class HexMetrics {
 		position.z += (sample.z * 2f - 1f) * cellPerturbStrength;
 		return position;
 	}
+
+    public static int wrapSize;
+
+    public static bool Wrapping {
+        get {
+            return wrapSize > 0;
+        }
+    }
 }
