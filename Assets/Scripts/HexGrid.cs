@@ -72,15 +72,16 @@ public class HexGrid : MonoBehaviour {
 
 		ClearPath();
 		ClearUnits();
-		if (chunks != null) {
-			for (int i = 0; i < chunks.Length; i++) {
-				Destroy(chunks[i].gameObject);
-			}
-		}
+        if (columns != null) {
+            for (int i = 0; i < columns.Length; i++) {
+                Destroy(columns[i].gameObject);
+            }
+        }
 
-		cellCountX = x;
+        cellCountX = x;
 		cellCountZ = z;
         this.wrapping = wrapping;
+        currentCenterColumnIndex = -1;
         HexMetrics.wrapSize = wrapping ? cellCountX : 0;
         chunkCountX = cellCountX / HexMetrics.chunkSizeX;
 		chunkCountZ = cellCountZ / HexMetrics.chunkSizeZ;
@@ -91,12 +92,18 @@ public class HexGrid : MonoBehaviour {
 	}
 
 	void CreateChunks () {
-		chunks = new HexGridChunk[chunkCountX * chunkCountZ];
+        columns = new Transform[chunkCountX];
+        for (int x = 0; x < chunkCountX; x++) {
+            columns[x] = new GameObject("Column").transform;
+            columns[x].SetParent(transform, false);
+        }
+
+        chunks = new HexGridChunk[chunkCountX * chunkCountZ];
 
 		for (int z = 0, i = 0; z < chunkCountZ; z++) {
 			for (int x = 0; x < chunkCountX; x++) {
 				HexGridChunk chunk = chunks[i++] = Instantiate(chunkPrefab);
-				chunk.transform.SetParent(transform);
+				chunk.transform.SetParent(columns[x], false);
 			}
 		}
 	}
@@ -119,7 +126,7 @@ public class HexGrid : MonoBehaviour {
 	}
 
 	void OnEnable () {
-		if (!HexMetrics.noiseSource) {
+        if (!HexMetrics.noiseSource) {
 			HexMetrics.noiseSource = noiseSource;
 			HexMetrics.InitializeHashGrid(seed);
 			HexUnit.unitPrefab = unitPrefab;
@@ -477,4 +484,37 @@ public class HexGrid : MonoBehaviour {
     public HexCell GetCell(int cellIndex) {
         return cells[cellIndex];
     }
+
+    Transform[] columns;
+
+    public void CenterMap(float xPosition) {
+        int centerColumnIndex = (int)
+            (xPosition / (HexMetrics.innerDiameter * HexMetrics.chunkSizeX));
+
+        if (centerColumnIndex == currentCenterColumnIndex) {
+            return;
+        }
+        currentCenterColumnIndex = centerColumnIndex;
+        int minColumnIndex = centerColumnIndex - chunkCountX / 2;
+        int maxColumnIndex = centerColumnIndex + chunkCountX / 2;
+
+        Vector3 position;
+        position.y = position.z = 0f;
+        for (int i = 0; i < columns.Length; i++) {
+            if (i < minColumnIndex) {
+                position.x = chunkCountX *
+                    (HexMetrics.innerDiameter * HexMetrics.chunkSizeX);
+            }
+            else if (i > maxColumnIndex) {
+                position.x = chunkCountX *
+                    -(HexMetrics.innerDiameter * HexMetrics.chunkSizeX);
+            }
+            else {
+                position.x = 0f;
+            }
+            columns[i].localPosition = position;
+        }
+    }
+
+    int currentCenterColumnIndex = -1;
 }

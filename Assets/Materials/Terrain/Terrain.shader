@@ -6,7 +6,7 @@
 		_Glossiness ("Smoothness", Range(0,1)) = 0.5
 		_Specular ("Specular", Color) = (0.2, 0.2, 0.2)
 		_BackgroundColor ("Background Color", Color) = (0,0,0)
-		[Toggle(SHOW_MAP_DATA)] _ShowMapData ("Show Map Data", Float) = 0
+		[Toggle(SHOW_MAP_DATA)]_ShowMapData ("Show Map Data", Float) = 0
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -18,7 +18,10 @@
 
 		#pragma multi_compile _ GRID_ON
 		#pragma multi_compile _ HEX_MAP_EDIT_MODE
+
 		#pragma shader_feature SHOW_MAP_DATA
+
+		#include "../HexMetrics.cginc"
 		#include "../HexCellData.cginc"
 
 		UNITY_DECLARE_TEX2DARRAY(_MainTex);
@@ -35,6 +38,7 @@
 			float3 worldPos;
 			float3 terrain;
 			float4 visibility;
+
 			#if defined(SHOW_MAP_DATA)
 				float mapData;
 			#endif
@@ -57,6 +61,7 @@
 			data.visibility.xyz = lerp(0.25, 1, data.visibility.xyz);
 			data.visibility.w =
 				cell0.y * v.color.x + cell1.y * v.color.y + cell2.y * v.color.z;
+
 			#if defined(SHOW_MAP_DATA)
 				data.mapData = cell0.z * v.color.x + cell1.z * v.color.y +
 					cell2.z * v.color.z;
@@ -64,7 +69,10 @@
 		}
 
 		float4 GetTerrainColor (Input IN, int index) {
-			float3 uvw = float3(IN.worldPos.xz * 0.02, IN.terrain[index]);
+			float3 uvw = float3(
+				IN.worldPos.xz * (2 * TILING_NOISE_SCALE),
+				IN.terrain[index]
+			);
 			float4 c = UNITY_SAMPLE_TEX2DARRAY(_MainTex, uvw);
 			return c * (IN.color[index] * IN.visibility[index]);
 		}
@@ -88,7 +96,6 @@
 			#if defined(SHOW_MAP_DATA)
 				o.Albedo = IN.mapData * grid;
 			#endif
-
 			o.Specular = _Specular * explored;
 			o.Smoothness = _Glossiness;
 			o.Occlusion = explored;
