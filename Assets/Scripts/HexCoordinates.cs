@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.IO;
 
 [System.Serializable]
@@ -19,6 +19,7 @@ public struct HexCoordinates {
 		}
 	}
 
+	//Y 좌표는 X와 Z를 통해 계산 (X + Y + Z = 0).
 	public int Y {
 		get {
 			return -X - Z;
@@ -30,10 +31,12 @@ public struct HexCoordinates {
 		this.z = z;
 	}
 
+	//배열 인덱스나 오프셋 좌표를 육각형 좌표로 변환
 	public static HexCoordinates FromOffsetCoordinates (int x, int z) {
 		return new HexCoordinates(x - z / 2, z);
 	}
 
+	//Unity의 월드 좌표를 육각형 좌표로 변환.
 	public static HexCoordinates FromPosition (Vector3 position) {
 		float x = position.x / (HexMetrics.innerRadius * 2f);
 		float y = -x;
@@ -46,6 +49,7 @@ public struct HexCoordinates {
 		int iY = Mathf.RoundToInt(y);
 		int iZ = Mathf.RoundToInt(-x -y);
 
+		//반올림 오차로 인해 X+Y+Z가 0이 되지 않는 경우 처리
 		if (iX + iY + iZ != 0) {
 			float dX = Mathf.Abs(x - iX);
 			float dY = Mathf.Abs(y - iY);
@@ -71,6 +75,7 @@ public struct HexCoordinates {
 		return X.ToString() + "\n" + Y.ToString() + "\n" + Z.ToString();
 	}
 
+    //두 좌표 사이의 거리 계산
     public int DistanceTo(HexCoordinates other) {
         return ((x < other.x ? other.x - x : x - other.x) +
             (Y < other.Y ? other.Y - Y : Y - other.Y) +
