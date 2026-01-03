@@ -1,3 +1,4 @@
+using UnityEditor.PackageManager.UI;
 using UnityEngine;
 
 public static class HexMetrics {
@@ -84,11 +85,23 @@ public static class HexMetrics {
 	//주어진 월드 좌표(position)에서 노이즈 값을 샘플링합니다
 	//XZ 평면 좌표를 사용하여 텍스처의 픽셀 값을 가져옵니다
 	public static Vector4 SampleNoise (Vector3 position) {
-		return noiseSource.GetPixelBilinear(
+        Vector4 sample = noiseSource.GetPixelBilinear(
 			position.x * noiseScale,
 			position.z * noiseScale
 		);
-	}
+		//west side
+        if (Wrapping && position.x < innerDiameter * 1.5f) {
+            Vector4 sample2 = noiseSource.GetPixelBilinear(
+                (position.x + wrapSize * innerDiameter) * noiseScale,
+                position.z * noiseScale
+            );
+            //cross-fade with linear interpolation
+            sample = Vector4.Lerp(
+				sample2, sample, position.x * (1f / innerDiameter) -0.5f
+			);
+        }
+        return sample;
+    }
 
 	public static void InitializeHashGrid (int seed) {
 		hashGrid = new HexHash[hashGridSize * hashGridSize];

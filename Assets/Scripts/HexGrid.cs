@@ -52,7 +52,6 @@ public class HexGrid : MonoBehaviour {
 	public void AddUnit (HexUnit unit, HexCell location, float orientation) {
 		units.Add(unit);
 		unit.Grid = this;
-		unit.transform.SetParent(transform, false);
 		unit.Location = location;
 		unit.Orientation = orientation;
 	}
@@ -148,10 +147,8 @@ public class HexGrid : MonoBehaviour {
 	public HexCell GetCell (Vector3 position) {
 		position = transform.InverseTransformPoint(position);
 		HexCoordinates coordinates = HexCoordinates.FromPosition(position);
-		int index =
-			coordinates.X + coordinates.Z * cellCountX + coordinates.Z / 2;
-		return cells[index];
-	}
+        return GetCell(coordinates);
+    }
 
 	//hex coordinate를 기준으로 셀을 반환
 	public HexCell GetCell (HexCoordinates coordinates) {
@@ -182,27 +179,45 @@ public class HexGrid : MonoBehaviour {
 		cell.transform.localPosition = position;
 		cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
 		cell.Index = i;
-		cell.ShaderData = cellShaderData;
+        cell.ColumnIndex = x / HexMetrics.chunkSizeX;
+        cell.ShaderData = cellShaderData;
 
-        cell.Explorable = x > 0 && z > 0 && x < cellCountX - 1 && z < cellCountZ - 1;
+		if (wrapping) {
+			cell.Explorable = z > 0 && z < cellCountZ - 1;
+		}
+		else {
+			cell.Explorable = x > 0 && z > 0 && x < cellCountX - 1 && z < cellCountZ - 1;
+		}
 
         //hex이므로 6개 방향 neighbour 설정
+		//wrapping이므로 동서 극단에서도 설정
         if (x > 0) {
 			cell.SetNeighbor(HexDirection.W, cells[i - 1]);
-		}
+            if (wrapping && x == cellCountX - 1) {
+                cell.SetNeighbor(HexDirection.E, cells[i - x]);
+            }
+        }
 		if (z > 0) {
 			if ((z & 1) == 0) {
 				cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX]);
 				if (x > 0) {
 					cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX - 1]);
 				}
-			}
+                else if (wrapping) {
+                    cell.SetNeighbor(HexDirection.SW, cells[i - 1]);
+                }
+            }
 			else {
 				cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX]);
 				if (x < cellCountX - 1) {
 					cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX + 1]);
 				}
-			}
+                else if (wrapping) {
+                    cell.SetNeighbor(
+                        HexDirection.SE, cells[i - cellCountX * 2 + 1]
+                    );
+                }
+            }
 		}
 
 		Text label = Instantiate<Text>(cellLabelPrefab);
@@ -517,4 +532,8 @@ public class HexGrid : MonoBehaviour {
     }
 
     int currentCenterColumnIndex = -1;
+
+    public void MakeChildOfColumn(Transform child, int columnIndex) {
+        child.SetParent(columns[columnIndex], false);
+    }
 }

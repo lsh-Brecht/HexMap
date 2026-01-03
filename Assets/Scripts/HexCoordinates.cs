@@ -27,7 +27,16 @@ public struct HexCoordinates {
 	}
 
 	public HexCoordinates (int x, int z) {
-		this.x = x;
+        if (HexMetrics.Wrapping) {
+            int oX = x + z / 2;
+            if (oX < 0) {
+                x += HexMetrics.wrapSize;
+            }
+            else if (oX >= HexMetrics.wrapSize) {
+                x -= HexMetrics.wrapSize;
+            }
+        }
+        this.x = x;
 		this.z = z;
 	}
 
@@ -77,9 +86,29 @@ public struct HexCoordinates {
 
     //두 좌표 사이의 거리 계산
     public int DistanceTo(HexCoordinates other) {
-        return ((x < other.x ? other.x - x : x - other.x) +
-            (Y < other.Y ? other.Y - Y : Y - other.Y) +
-            (z < other.z ? other.z - z : z - other.z))/2;
+        int xy = (x < other.x ? other.x - x : x - other.x) +
+            (Y < other.Y ? other.Y - Y : Y - other.Y);
+
+        if (HexMetrics.Wrapping) {
+            other.x += HexMetrics.wrapSize;
+            int xyWrapped =
+                (x < other.x ? other.x - x : x - other.x) +
+                (Y < other.Y ? other.Y - Y : Y - other.Y);
+			if (xyWrapped < xy) {
+				xy = xyWrapped;
+			}
+            else {
+                other.x -= 2 * HexMetrics.wrapSize;
+                xyWrapped =
+                    (x < other.x ? other.x - x : x - other.x) +
+                    (Y < other.Y ? other.Y - Y : Y - other.Y);
+                if (xyWrapped < xy) {
+                    xy = xyWrapped;
+                }
+            }
+        }
+
+		return (xy + (z < other.z ? other.z - z : z - other.z)) / 2;
     }
 
     public void Save(BinaryWriter writer) {
