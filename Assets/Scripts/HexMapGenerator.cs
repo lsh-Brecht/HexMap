@@ -308,6 +308,7 @@ public class HexMapGenerator : MonoBehaviour {
     //자연스러운 침식을 시뮬레이션하기 위해 급격한 경사를 깎아냅니다.
 	void ErodeLand () {
 		List<HexCell> erodibleCells = ListPool<HexCell>.Get();
+        // 전체 셀 중 침식 가능한(경사가 급한) 셀을 찾습니다.
 		for (int i = 0; i < cellCount; i++) {
 			HexCell cell = grid.GetCell(i);
 			if (IsErodible(cell)) {
@@ -318,6 +319,7 @@ public class HexMapGenerator : MonoBehaviour {
 		int targetErodibleCount =
 			(int)(erodibleCells.Count * (100 - erosionPercentage) * 0.01f);
 		
+        // 목표치만큼 침식 작용 수행
 		while (erodibleCells.Count > targetErodibleCount) {
 			int index = Random.Range(0, erodibleCells.Count);
 			HexCell cell = erodibleCells[index];
@@ -331,6 +333,7 @@ public class HexMapGenerator : MonoBehaviour {
 				erodibleCells.RemoveAt(erodibleCells.Count - 1);
 			}
 
+            //침식으로 인해 이웃 셀들이 침식 가능해졌는지 확인하여 목록에 추가
 			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
 				HexCell neighbor = cell.GetNeighbor(d);
 				if (
@@ -514,6 +517,7 @@ public class HexMapGenerator : MonoBehaviour {
         HexCell cell = grid.GetCell(cellIndex);
         ClimateData cellClimate = climate[cellIndex];
 
+        //Evaporation: 수중에서는 항상 수분이 100%이며, 여기서 구름을 생성합니다.
         if (cell.IsUnderwater) {
             cellClimate.moisture = 1f;
             cellClimate.clouds += evaporationFactor;
@@ -524,32 +528,42 @@ public class HexMapGenerator : MonoBehaviour {
             cellClimate.clouds += evaporation;
         }
 
+        //Precipitation: 구름의 일부가 비가 되어 수분으로 돌아옵니다.
         float precipitation = cellClimate.clouds * precipitationFactor;
         cellClimate.clouds -= precipitation;
         cellClimate.moisture += precipitation;
 
+        //Cloud Maximum: 고도가 높을수록 구름이 유지되기 어렵습니다
+        //최대 허용치를 초과한 구름은 즉시 비로 내립니다.
         float cloudMaximum = 1f - cell.ViewElevation / (elevationMaximum + 1f);
         if (cellClimate.clouds > cloudMaximum) {
             cellClimate.moisture += cellClimate.clouds - cloudMaximum;
             cellClimate.clouds = cloudMaximum;
         }
 
+        //Cloud Dispersal & Moisture Transport
         HexDirection mainDispersalDirection = windDirection.Opposite();
+        //구름의 확산: 바람 방향으로 더 많이 이동합니다.
         float cloudDispersal = cellClimate.clouds * (1f / (5f + windStrength));
         float runoff = cellClimate.moisture * runoffFactor * (1f / 6f);
         float seepage = cellClimate.moisture * seepageFactor * (1f / 6f);
+
         for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
             HexCell neighbor = cell.GetNeighbor(d);
             if (!neighbor) {
                 continue;
             }
             ClimateData neighborClimate = nextClimate[neighbor.Index];
+            
+            // Wind Dispersal logic
             if (d == mainDispersalDirection) {
                 neighborClimate.clouds += cloudDispersal * windStrength;
             }
             else {
                 neighborClimate.clouds += cloudDispersal;
             }
+
+            // Elevation Difference에 따른 수분 이동
             int elevationDelta = neighbor.ViewElevation - cell.ViewElevation;
             if (elevationDelta < 0) {
                 cellClimate.moisture -= runoff;
@@ -574,6 +588,8 @@ public class HexMapGenerator : MonoBehaviour {
 
     void CreateRivers() {
         List<HexCell> riverOrigins = ListPool<HexCell>.Get();
+        //River Origins 후보군
+        //Moisture가 높고, WaterLevel보다 높은 곳
         for (int i = 0; i < cellCount; i++) {
             HexCell cell = grid.GetCell(i);
             if (cell.IsUnderwater) {
@@ -594,6 +610,7 @@ public class HexMapGenerator : MonoBehaviour {
                 riverOrigins.Add(cell);
             }
         }
+        
         int riverBudget = Mathf.RoundToInt(landCells * riverPercentage * 0.01f);
         while (riverBudget > 0 && riverOrigins.Count > 0) {
             int index = Random.Range(0, riverOrigins.Count);
@@ -601,6 +618,8 @@ public class HexMapGenerator : MonoBehaviour {
             HexCell origin = riverOrigins[index];
             riverOrigins[index] = riverOrigins[lastIndex];
             riverOrigins.RemoveAt(lastIndex);
+            
+            //이미 강이 흐르는 곳이나 바로 옆에 강/바다가 있는 곳은 제외
             if (!origin.HasRiver) {
                 bool isValidOrigin = true;
                 for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
@@ -629,40 +648,51 @@ public class HexMapGenerator : MonoBehaviour {
         while (!cell.IsUnderwater) {
             int minNeighborElevation = int.MaxValue;
             flowDirections.Clear();
+            
             for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
                 HexCell neighbor = cell.GetNeighbor(d);
                 if (!neighbor) {
                     continue;
                 }
+                // 가장 낮은 높이 갱신
                 if (neighbor.Elevation < minNeighborElevation) {
                     minNeighborElevation = neighbor.Elevation;
                 }
+                // 되돌아가거나 이미 강이 흘러들어오는 곳으로는 갈 수 없음
                 if (neighbor == origin || neighbor.HasIncomingRiver) {
                     continue;
                 }
+                // 오르막으로는 흐를 수 없음
                 int delta = neighbor.Elevation - cell.Elevation;
                 if (delta > 0) {
                     continue;
                 }
+                // 기존 강과 합류 (Merge)
                 if (neighbor.HasOutgoingRiver) {
                     cell.SetOutgoingRiver(d);
                     return length;
                 }
+                
                 if (delta < 0) {
                     flowDirections.Add(d);
                     flowDirections.Add(d);
                     flowDirections.Add(d);
                 }
+                
+                //부자연스러운 강의 굴곡 해결
                 if (length == 1 || (d != direction.Next2() && d != direction.Previous2()))
 				{
                     flowDirections.Add(d);
                 }
                 flowDirections.Add(d);
             }
+            
             if (flowDirections.Count == 0) {
                 if (length == 1) {
                     return 0;
                 }
+                
+                //주변이 내 위치보다 높거나 같으면 Lake 생성
                 if (minNeighborElevation >= cell.Elevation) {
                     cell.WaterLevel = minNeighborElevation;
                     if (minNeighborElevation == cell.Elevation) {
@@ -671,10 +701,12 @@ public class HexMapGenerator : MonoBehaviour {
                 }
                 break;
             }
+            
             direction = flowDirections[Random.Range(0, flowDirections.Count)];
             cell.SetOutgoingRiver(direction);
             length += 1;
 
+            //흐르는 중간에 확률적으로 Lake 생성
             if (minNeighborElevation >= cell.Elevation && Random.value < extraLakeProbability) {
                 cell.WaterLevel = cell.Elevation;
                 cell.Elevation -= 1;
