@@ -7,6 +7,7 @@ public class HexMesh : MonoBehaviour {
 
 	public bool useCollider, useCellData, useUVCoordinates, useUV2Coordinates;
 
+    //메쉬 데이터를 저장할 리스트. ListPool.
 	[NonSerialized] List<Vector3> vertices, cellIndices;
 	[NonSerialized] List<Color> cellWeights;
 	[NonSerialized] List<Vector2> uvs, uv2s;
@@ -23,6 +24,7 @@ public class HexMesh : MonoBehaviour {
 		hexMesh.name = "Hex Mesh";
 	}
 
+    //메쉬 데이터를 초기화. 새로운 메쉬를 만들기 전에 호출.
 	public void Clear () {
 		hexMesh.Clear();
 		vertices = ListPool<Vector3>.Get();
@@ -39,6 +41,7 @@ public class HexMesh : MonoBehaviour {
 		triangles = ListPool<int>.Get();
 	}
 
+    //생성된 데이터를 실제 메쉬에 적용.
 	public void Apply () {
 		hexMesh.SetVertices(vertices);
 		ListPool<Vector3>.Add(vertices);
@@ -64,6 +67,7 @@ public class HexMesh : MonoBehaviour {
 		}
 	}
 
+    //trianangle, Perturb도 적용합니다
 	public void AddTriangle (Vector3 v1, Vector3 v2, Vector3 v3) {
 		int vertexIndex = vertices.Count;
 		vertices.Add(HexMetrics.Perturb(v1));
@@ -74,7 +78,8 @@ public class HexMesh : MonoBehaviour {
 		triangles.Add(vertexIndex + 2);
 	}
 
-	public void AddTriangleUnperturbed (Vector3 v1, Vector3 v2, Vector3 v3) {
+    //Perturb 없는 경우
+    public void AddTriangleUnperturbed (Vector3 v1, Vector3 v2, Vector3 v3) {
 		int vertexIndex = vertices.Count;
 		vertices.Add(v1);
 		vertices.Add(v2);
@@ -111,6 +116,7 @@ public class HexMesh : MonoBehaviour {
 		AddTriangleCellData(indices, weights, weights, weights);
 	}
 
+    //Quad(triangle 2번)
 	public void AddQuad (Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4) {
 		int vertexIndex = vertices.Count;
 		vertices.Add(HexMetrics.Perturb(v1));

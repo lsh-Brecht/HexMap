@@ -13,6 +13,8 @@ public class HexUnit : MonoBehaviour {
 
 	public HexGrid Grid { get; set; }
 
+    //유닛의 현재 위치(HexCell)를 설정하거나 가져옵니다.
+    //위치가 변경되면 이전 위치의 시야를 끄고, 새 위치의 시야를 밝힙니다.
 	public HexCell Location {
 		get {
 			return location;
@@ -60,6 +62,7 @@ public class HexUnit : MonoBehaviour {
 		return cell.IsExplored && !cell.IsUnderwater && !cell.Unit;
 	}
 
+    //주어진 경로를 따라 유닛을 이동시킵니다. 코루틴을 사용하여 부드러운 이동을 구현합니다.
 	public void Travel (List<HexCell> path) {
 		location.Unit = null;
 		location = path[path.Count - 1];
@@ -164,6 +167,8 @@ public class HexUnit : MonoBehaviour {
 		orientation = transform.localRotation.eulerAngles.y;
 	}
 
+    //두 셀 사이의 이동 비용을 계산합니다.
+    //도로가 있으면 비용이 1로 고정되며 지형 타입에 따라 5 또는 10이 소모됩니다.
 	public int GetMoveCost (
 		HexCell fromCell, HexCell toCell, HexDirection direction)
 	{
