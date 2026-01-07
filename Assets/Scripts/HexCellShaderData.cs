@@ -19,12 +19,14 @@ public class HexCellShaderData : MonoBehaviour {
 
 	public bool ImmediateMode { get; set; }
 
-	/// <summary>
-	/// Initialze the map data.
-	/// </summary>
-	/// <param name="x">Map X size.</param>
-	/// <param name="z">Map Z size.</param>
-	public void Initialize (int x, int z) {
+    bool[] visibilityTransitions;
+
+    /// <summary>
+    /// Initialze the map data.
+    /// </summary>
+    /// <param name="x">Map X size.</param>
+    /// <param name="z">Map Z size.</param>
+    public void Initialize (int x, int z) {
 		if (cellTexture) {
 			cellTexture.Reinitialize(x, z);
 		}
@@ -44,11 +46,13 @@ public class HexCellShaderData : MonoBehaviour {
 
 		if (cellTextureData == null || cellTextureData.Length != x * z) {
 			cellTextureData = new Color32[x * z];
-		}
+            visibilityTransitions = new bool[x * z];
+        }
 		else {
 			for (int i = 0; i < cellTextureData.Length; i++) {
 				cellTextureData[i] = new Color32(0, 0, 0, 0);
-			}
+                visibilityTransitions[i] = false;
+            }
 		}
 
 		transitioningCells.Clear();
@@ -60,8 +64,11 @@ public class HexCellShaderData : MonoBehaviour {
 	/// </summary>
 	/// <param name="cell">Cell with changed terrain type.</param>
 	public void RefreshTerrain (HexCell cell) {
-		cellTextureData[cell.Index].a = (byte)cell.TerrainTypeIndex;
-		enabled = true;
+        Color32 data = cellTextureData[cell.Index];
+        data.b = cell.IsUnderwater ? (byte)(cell.WaterSurfaceY * (255f / 30f)) : (byte)0;
+        data.a = (byte)cell.TerrainTypeIndex;
+        cellTextureData[cell.Index] = data;
+        enabled = true;
 	}
 
 	/// <summary>
@@ -74,9 +81,9 @@ public class HexCellShaderData : MonoBehaviour {
 			cellTextureData[index].r = cell.IsVisible ? (byte)255 : (byte)0;
 			cellTextureData[index].g = cell.IsExplored ? (byte)255 : (byte)0;
 		}
-		else if (cellTextureData[index].b != 255) {
-			cellTextureData[index].b = 255;
-			transitioningCells.Add(cell);
+        else if (!visibilityTransitions[index]) {
+            visibilityTransitions[index] = true;
+            transitioningCells.Add(cell);
 		}
 		enabled = true;
 	}
@@ -88,15 +95,16 @@ public class HexCellShaderData : MonoBehaviour {
 	/// <param name="data">Cell data value.</param>
 	public void SetMapData (HexCell cell, float data) {
 		cellTextureData[cell.Index].b =
-			data < 0f ? (byte)0 : (data < 1f ? (byte)(data * 254f) : (byte)254);
+			data < 0f ? (byte)0 : (data < 1f ? (byte)(data * 255f) : (byte)255);
 		enabled = true;
 	}
 
 	/// <summary>
 	/// Indicate that view elevation data has changed, requiring a visibility reset.
 	/// </summary>
-	public void ViewElevationChanged () {
-		needsVisibilityReset = true;
+	public void ViewElevationChanged (HexCell cell) {
+        cellTextureData[cell.Index].b = cell.IsUnderwater ? (byte)(cell.WaterSurfaceY * (255f / 30f)) : (byte)0;
+        needsVisibilityReset = true;
 		enabled = true;
 	}
 
@@ -148,8 +156,8 @@ public class HexCellShaderData : MonoBehaviour {
 		}
 
 		if (!stillUpdating) {
-			data.b = 0;
-		}
+            visibilityTransitions[index] = false;
+        }
 		cellTextureData[index] = data;
 		return stillUpdating;
 	}

@@ -153,4 +153,8 @@ public struct HexCoordinates {
 		c.z = reader.ReadInt32();
 		return c;
 	}
+
+    public float HexX => X + Z / 2 + ((Z & 1) == 0 ? 0f : 0.5f);
+
+    public float HexZ => Z * HexMetrics.outerToInner;
 }
