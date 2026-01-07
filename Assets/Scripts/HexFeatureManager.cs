@@ -1,18 +1,35 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Component that manages the map feature visualizations for a hex grid chunk.
+/// </summary>
 public class HexFeatureManager : MonoBehaviour {
 
-	public HexFeatureCollection[]
-		urbanCollections, farmCollections, plantCollections;
+	[System.Serializable]
+	public struct HexFeatureCollection {
 
-	public HexMesh walls;
+		public Transform[] prefabs;
 
-	public Transform wallTower, bridge;
+		public Transform Pick (float choice) => prefabs[(int)(choice * prefabs.Length)];
+	}
 
-	public Transform[] special;
+	[SerializeField]
+	HexFeatureCollection[] urbanCollections, farmCollections, plantCollections;
+
+	[SerializeField]
+	HexMesh walls;
+
+	[SerializeField]
+	Transform wallTower, bridge;
+
+	[SerializeField]
+	Transform[] special;
 
 	Transform container;
 
+	/// <summary>
+	/// Clear all features.
+	/// </summary>
 	public void Clear () {
 		if (container) {
 			Destroy(container.gameObject);
@@ -22,9 +39,10 @@ public class HexFeatureManager : MonoBehaviour {
 		walls.Clear();
 	}
 
-	public void Apply () {
-		walls.Apply();
-	}
+	/// <summary>
+	/// Apply triangulation.
+	/// </summary>
+	public void Apply () => walls.Apply();
 
 	Transform PickPrefab (
 		HexFeatureCollection[] collection,
@@ -41,6 +59,11 @@ public class HexFeatureManager : MonoBehaviour {
 		return null;
 	}
 
+	/// <summary>
+	/// Add a bridge between two road centers.
+	/// </summary>
+	/// <param name="roadCenter1">Center position of first road.</param>
+	/// <param name="roadCenter2">Center position of second road.</param>
 	public void AddBridge (Vector3 roadCenter1, Vector3 roadCenter2) {
 		roadCenter1 = HexMetrics.Perturb(roadCenter1);
 		roadCenter2 = HexMetrics.Perturb(roadCenter2);
@@ -54,6 +77,11 @@ public class HexFeatureManager : MonoBehaviour {
 		instance.SetParent(container, false);
 	}
 
+	/// <summary>
+	/// Add a feature for a cell.
+	/// </summary>
+	/// <param name="cell">Cell with one or more features.</param>
+	/// <param name="position">Feature position.</param>
 	public void AddFeature (HexCell cell, Vector3 position) {
 		if (cell.IsSpecial) {
 			return;
@@ -99,6 +127,11 @@ public class HexFeatureManager : MonoBehaviour {
 		instance.SetParent(container, false);
 	}
 
+	/// <summary>
+	/// Add a special feature for a cell.
+	/// </summary>
+	/// <param name="cell">Cell with special feature.</param>
+	/// <param name="position">Feature position.</param>
 	public void AddSpecialFeature (HexCell cell, Vector3 position) {
 		HexHash hash = HexMetrics.SampleHashGrid(position);
 		Transform instance = Instantiate(special[cell.SpecialIndex - 1]);
@@ -107,6 +140,15 @@ public class HexFeatureManager : MonoBehaviour {
 		instance.SetParent(container, false);
 	}
 
+	/// <summary>
+	/// Add a wall along the edge between two cells.
+	/// </summary>
+	/// <param name="near">Near edge.</param>
+	/// <param name="nearCell">Near cell.</param>
+	/// <param name="far">Far edge.</param>
+	/// <param name="farCell">Far cell.</param>
+	/// <param name="hasRiver">Whether a river crosses the edge.</param>
+	/// <param name="hasRoad">Whether a road crosses the edge.</param>
 	public void AddWall (
 		EdgeVertices near, HexCell nearCell,
 		EdgeVertices far, HexCell farCell,
@@ -130,6 +172,15 @@ public class HexFeatureManager : MonoBehaviour {
 		}
 	}
 
+	/// <summary>
+	/// Add a call though the corner where three cells meet.
+	/// </summary>
+	/// <param name="c1">First corner position.</param>
+	/// <param name="cell1">First corner cell.</param>
+	/// <param name="c2">Second corner position.</param>
+	/// <param name="cell2">Second corner cell.</param>
+	/// <param name="c3">Third corner position.</param>
+	/// <param name="cell3">Third corner cell.</param>
 	public void AddWall (
 		Vector3 c1, HexCell cell1,
 		Vector3 c2, HexCell cell2,

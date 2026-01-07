@@ -1,54 +1,99 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.IO;
 
+/// <summary>
+/// Immutable three-component hexagonal coordinates.
+/// </summary>
 [System.Serializable]
 public struct HexCoordinates {
 
 	[SerializeField]
 	private int x, z;
 
-	public int X {
-		get {
-			return x;
-		}
-	}
+	/// <summary>
+	/// X coordinate.
+	/// </summary>
+	public int X => x;
 
-	public int Z {
-		get {
-			return z;
-		}
-	}
+	/// <summary>
+	/// Z coordinate.
+	/// </summary>
+	public int Z => z;
 
-	//Y 좌표는 X와 Z를 통해 계산 (X + Y + Z = 0).
-	public int Y {
-		get {
-			return -X - Z;
-		}
-	}
+	/// <summary>
+	/// Y coordinate, derived from X and Z.
+	/// </summary>
+	public int Y => -X - Z;
 
+	/// <summary>
+	/// Create hex coordinates.
+	/// </summary>
+	/// <param name="x">X coordinate.</param>
+	/// <param name="z">Z coordinate.</param>
 	public HexCoordinates (int x, int z) {
-        if (HexMetrics.Wrapping) {
-            int oX = x + z / 2;
-            if (oX < 0) {
-                x += HexMetrics.wrapSize;
-            }
-            else if (oX >= HexMetrics.wrapSize) {
-                x -= HexMetrics.wrapSize;
-            }
-        }
-        this.x = x;
+		if (HexMetrics.Wrapping) {
+			int oX = x + z / 2;
+			if (oX < 0) {
+				x += HexMetrics.wrapSize;
+			}
+			else if (oX >= HexMetrics.wrapSize) {
+				x -= HexMetrics.wrapSize;
+			}
+		}
+		this.x = x;
 		this.z = z;
 	}
 
-	//배열 인덱스나 오프셋 좌표를 육각형 좌표로 변환
-	public static HexCoordinates FromOffsetCoordinates (int x, int z) {
-		return new HexCoordinates(x - z / 2, z);
+	/// <summary>
+	/// Determine distance between this and another set of coordinates.
+	/// Takes <see cref="HexMetrics.Wrapping"/> into account.
+	/// </summary>
+	/// <param name="other">Coordinate to determine distance to.</param>
+	/// <returns>Distance in cells.</returns>
+	public int DistanceTo (HexCoordinates other) {
+		int xy =
+			(x < other.x ? other.x - x : x - other.x) +
+			(Y < other.Y ? other.Y - Y : Y - other.Y);
+
+		if (HexMetrics.Wrapping) {
+			other.x += HexMetrics.wrapSize;
+			int xyWrapped =
+				(x < other.x ? other.x - x : x - other.x) +
+				(Y < other.Y ? other.Y - Y : Y - other.Y);
+			if (xyWrapped < xy) {
+				xy = xyWrapped;
+			}
+			else {
+				other.x -= 2 * HexMetrics.wrapSize;
+				xyWrapped =
+					(x < other.x ? other.x - x : x - other.x) +
+					(Y < other.Y ? other.Y - Y : Y - other.Y);
+				if (xyWrapped < xy) {
+					xy = xyWrapped;
+				}
+			}
+		}
+
+		return (xy + (z < other.z ? other.z - z : z - other.z)) / 2;
 	}
 
-	//Unity의 월드 좌표를 육각형 좌표로 변환.
+	/// <summary>
+	/// Create hex coordinates from array offset coordinates.
+	/// </summary>
+	/// <param name="x">X offset coordinate.</param>
+	/// <param name="z">Z offset coordinate.</param>
+	/// <returns>Hex coordinates.</returns>
+	public static HexCoordinates FromOffsetCoordinates (int x, int z) =>
+		new HexCoordinates(x - z / 2, z);
+
+	/// <summary>
+	/// Create hex coordinates for the cell that contains a position.
+	/// </summary>
+	/// <param name="position">A 3D position assumed to lie inside the map.</param>
+	/// <returns>Hex coordinates.</returns>
 	public static HexCoordinates FromPosition (Vector3 position) {
-        float x = position.x / HexMetrics.innerDiameter;
-        float y = -x;
+		float x = position.x / HexMetrics.innerDiameter;
+		float y = -x;
 
 		float offset = position.z / (HexMetrics.outerRadius * 3f);
 		x -= offset;
@@ -58,7 +103,6 @@ public struct HexCoordinates {
 		int iY = Mathf.RoundToInt(y);
 		int iZ = Mathf.RoundToInt(-x -y);
 
-		//반올림 오차로 인해 X+Y+Z가 0이 되지 않는 경우 처리
 		if (iX + iY + iZ != 0) {
 			float dX = Mathf.Abs(x - iX);
 			float dY = Mathf.Abs(y - iY);
@@ -75,51 +119,38 @@ public struct HexCoordinates {
 		return new HexCoordinates(iX, iZ);
 	}
 
-	public override string ToString () {
-		return "(" +
-			X.ToString() + ", " + Y.ToString() + ", " + Z.ToString() + ")";
+	/// <summary>
+	/// Create a string representation of the coordinates.
+	/// </summary>
+	/// <returns>A string of the form (X, Y, Z).</returns>
+	public override string ToString () =>
+		"(" + X.ToString() + ", " + Y.ToString() + ", " + Z.ToString() + ")";
+
+	/// <summary>
+	/// Create a multi-line string representation of the coordinates.
+	/// </summary>
+	/// <returns>A string of the form X\nY\nZ\n.</returns>
+	public string ToStringOnSeparateLines () =>
+		X.ToString() + "\n" + Y.ToString() + "\n" + Z.ToString();
+
+	/// <summary>
+	/// Save the coordinates.
+	/// </summary>
+	/// <param name="writer"><see cref="BinaryWriter"/> to use.</param>
+	public void Save (BinaryWriter writer) {
+		writer.Write(x);
+		writer.Write(z);
 	}
 
-	public string ToStringOnSeparateLines () {
-		return X.ToString() + "\n" + Y.ToString() + "\n" + Z.ToString();
+	/// <summary>
+	/// Load coordinates.
+	/// </summary>
+	/// <param name="reader"><see cref="BinaryReader"/> to use.</param>
+	/// <returns>The coordinates.</returns>
+	public static HexCoordinates Load (BinaryReader reader) {
+		HexCoordinates c;
+		c.x = reader.ReadInt32();
+		c.z = reader.ReadInt32();
+		return c;
 	}
-
-    //두 좌표 사이의 거리 계산
-    public int DistanceTo(HexCoordinates other) {
-        int xy = (x < other.x ? other.x - x : x - other.x) +
-            (Y < other.Y ? other.Y - Y : Y - other.Y);
-
-        if (HexMetrics.Wrapping) {
-            other.x += HexMetrics.wrapSize;
-            int xyWrapped =
-                (x < other.x ? other.x - x : x - other.x) +
-                (Y < other.Y ? other.Y - Y : Y - other.Y);
-			if (xyWrapped < xy) {
-				xy = xyWrapped;
-			}
-            else {
-                other.x -= 2 * HexMetrics.wrapSize;
-                xyWrapped =
-                    (x < other.x ? other.x - x : x - other.x) +
-                    (Y < other.Y ? other.Y - Y : Y - other.Y);
-                if (xyWrapped < xy) {
-                    xy = xyWrapped;
-                }
-            }
-        }
-
-		return (xy + (z < other.z ? other.z - z : z - other.z)) / 2;
-    }
-
-    public void Save(BinaryWriter writer) {
-        writer.Write(x);
-        writer.Write(z);
-    }
-
-    public static HexCoordinates Load(BinaryReader reader) {
-        HexCoordinates c;
-        c.x = reader.ReadInt32();
-        c.z = reader.ReadInt32();
-        return c;
-    }
 }

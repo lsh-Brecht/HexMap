@@ -1,11 +1,16 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Component that manages a single chunk of <see cref="HexGrid"/>.
+/// </summary>
 public class HexGridChunk : MonoBehaviour {
 
-	public HexMesh terrain, rivers, roads, water, waterShore, estuaries;
+	[SerializeField]
+	HexMesh terrain, rivers, roads, water, waterShore, estuaries;
 
-	public HexFeatureManager features;
+	[SerializeField]
+	HexFeatureManager features;
 
 	HexCell[] cells;
 
@@ -21,26 +26,37 @@ public class HexGridChunk : MonoBehaviour {
 		cells = new HexCell[HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ];
 	}
 
+	/// <summary>
+	/// Add a cell to the chunk.
+	/// </summary>
+	/// <param name="index">Index of the cell for the chunk.</param>
+	/// <param name="cell">Cell to add.</param>
 	public void AddCell (int index, HexCell cell) {
 		cells[index] = cell;
-		cell.chunk = this;
+		cell.Chunk = this;
 		cell.transform.SetParent(transform, false);
-		cell.uiRect.SetParent(gridCanvas.transform, false);
+		cell.UIRect.SetParent(gridCanvas.transform, false);
 	}
 
-	public void Refresh () {
-		enabled = true;
-	}
+	/// <summary>
+	/// Refresh the chunk.
+	/// </summary>
+	public void Refresh () => enabled = true;
 
-	public void ShowUI (bool visible) {
-		gridCanvas.gameObject.SetActive(visible);
-	}
+	/// <summary>
+	/// Control whether the map UI is visibile or hidden for the chunk.
+	/// </summary>
+	/// <param name="visible">Whether the UI should be visible.</param>
+	public void ShowUI (bool visible) => gridCanvas.gameObject.SetActive(visible);
 
 	void LateUpdate () {
 		Triangulate();
 		enabled = false;
 	}
 
+	/// <summary>
+	/// Triangulate everything in the chunk.
+	/// </summary>
 	public void Triangulate () {
 		terrain.Clear();
 		rivers.Clear();
@@ -183,13 +199,12 @@ public class HexGridChunk : MonoBehaviour {
 		water.AddTriangleCellData(indices, weights1);
 
 		Vector3 center2 = neighbor.Position;
-        if (neighbor.ColumnIndex < cell.ColumnIndex - 1) {
-            center2.x += HexMetrics.wrapSize * HexMetrics.innerDiameter;
-        }
-        else if (neighbor.ColumnIndex > cell.ColumnIndex + 1) {
-            center2.x -= HexMetrics.wrapSize * HexMetrics.innerDiameter;
-        }
-        
+		if (neighbor.ColumnIndex < cell.ColumnIndex - 1) {
+			center2.x += HexMetrics.wrapSize * HexMetrics.innerDiameter;
+		}
+		else if (neighbor.ColumnIndex > cell.ColumnIndex + 1) {
+			center2.x -= HexMetrics.wrapSize * HexMetrics.innerDiameter;
+		}
 		center2.y = center.y;
 		EdgeVertices e2 = new EdgeVertices(
 			center2 + HexMetrics.GetSecondSolidCorner(direction.Opposite()),
@@ -198,7 +213,8 @@ public class HexGridChunk : MonoBehaviour {
 
 		if (cell.HasRiverThroughEdge(direction)) {
 			TriangulateEstuary(
-				e1, e2, cell.HasIncomingRiver && cell.IncomingRiver == direction, indices
+				e1, e2,
+				cell.HasIncomingRiver && cell.IncomingRiver == direction, indices
 			);
 		}
 		else {
@@ -218,14 +234,14 @@ public class HexGridChunk : MonoBehaviour {
 
 		HexCell nextNeighbor = cell.GetNeighbor(direction.Next());
 		if (nextNeighbor != null) {
-            Vector3 center3 = nextNeighbor.Position;
-            if (nextNeighbor.ColumnIndex < cell.ColumnIndex - 1) {
-                center3.x += HexMetrics.wrapSize * HexMetrics.innerDiameter;
-            }
-            else if (nextNeighbor.ColumnIndex > cell.ColumnIndex + 1) {
-                center3.x -= HexMetrics.wrapSize * HexMetrics.innerDiameter;
-            }
-            Vector3 v3 = center3 + (nextNeighbor.IsUnderwater ?
+			Vector3 center3 = nextNeighbor.Position;
+			if (nextNeighbor.ColumnIndex < cell.ColumnIndex - 1) {
+				center3.x += HexMetrics.wrapSize * HexMetrics.innerDiameter;
+			}
+			else if (nextNeighbor.ColumnIndex > cell.ColumnIndex + 1) {
+				center3.x -= HexMetrics.wrapSize * HexMetrics.innerDiameter;
+			}
+			Vector3 v3 = center3 + (nextNeighbor.IsUnderwater ?
 				HexMetrics.GetFirstWaterCorner(direction.Previous()) :
 				HexMetrics.GetFirstSolidCorner(direction.Previous()));
 			v3.y = center.y;
@@ -963,9 +979,8 @@ public class HexGridChunk : MonoBehaviour {
 	void TriangulateRiverQuad (
 		Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4,
 		float y, float v, bool reversed, Vector3 indices
-	) {
+	) =>
 		TriangulateRiverQuad(v1, v2, v3, v4, y, y, v, reversed, indices);
-	}
 
 	void TriangulateRiverQuad (
 		Vector3 v1, Vector3 v2, Vector3 v3, Vector3 v4,

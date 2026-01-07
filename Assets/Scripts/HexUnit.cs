@@ -3,66 +3,80 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
+/// <summary>
+/// Component representing a unit that occupies a cell of the hex map.
+/// </summary>
 public class HexUnit : MonoBehaviour {
 
 	const float rotationSpeed = 180f;
 	const float travelSpeed = 4f;
-	const int visionRange = 3;
 
 	public static HexUnit unitPrefab;
 
 	public HexGrid Grid { get; set; }
 
-    //유닛의 현재 위치(HexCell)를 설정하거나 가져옵니다.
-    //위치가 변경되면 이전 위치의 시야를 끄고, 새 위치의 시야를 밝힙니다.
+	/// <summary>
+	/// Cell that the unit occupies.
+	/// </summary>
 	public HexCell Location {
-		get {
-			return location;
-		}
+		get => location;
 		set {
 			if (location) {
-				Grid.DecreaseVisibility(location, visionRange);
+				Grid.DecreaseVisibility(location, VisionRange);
 				location.Unit = null;
 			}
 			location = value;
 			value.Unit = this;
-			Grid.IncreaseVisibility(value, visionRange);
+			Grid.IncreaseVisibility(value, VisionRange);
 			transform.localPosition = value.Position;
-            Grid.MakeChildOfColumn(transform, value.ColumnIndex);
-        }
+			Grid.MakeChildOfColumn(transform, value.ColumnIndex);
+		}
 	}
 
 	HexCell location, currentTravelLocation;
 
+	/// <summary>
+	/// Orientation that the unit is facing.
+	/// </summary>
 	public float Orientation {
-		get {
-			return orientation;
-		}
+		get => orientation;
 		set {
 			orientation = value;
 			transform.localRotation = Quaternion.Euler(0f, value, 0f);
 		}
 	}
 
-	public int Speed {
-		get {
-			return 24;
-		}
-	}
+	/// <summary>
+	/// Speed of the unit, in cells per turn.
+	/// </summary>
+	public int Speed => 24;
+
+	/// <summary>
+	/// Vision range of the unit, in cells.
+	/// </summary>
+	public int VisionRange => 3;
 
 	float orientation;
 
 	List<HexCell> pathToTravel;
 
-	public void ValidateLocation () {
-		transform.localPosition = location.Position;
-	}
+	/// <summary>
+	/// Validate the position of the unit.
+	/// </summary>
+	public void ValidateLocation () => transform.localPosition = location.Position;
 
-	public bool IsValidDestination (HexCell cell) {
-		return cell.IsExplored && !cell.IsUnderwater && !cell.Unit;
-	}
+	/// <summary>
+	/// Checl whether a cell is a valid destination for the unit.
+	/// </summary>
+	/// <param name="cell">Cell to check.</param>
+	/// <returns>Whether the unit could occupy the cell.</returns>
+	public bool IsValidDestination (HexCell cell) =>
+		cell.IsExplored && !cell.IsUnderwater && !cell.Unit;
 
-    //주어진 경로를 따라 유닛을 이동시킵니다. 코루틴을 사용하여 부드러운 이동을 구현합니다.
+	/// <summary>
+	/// Travel along a path.
+	/// </summary>
+	/// <param name="path">List of cells that describe a valid path.</param>
 	public void Travel (List<HexCell> path) {
 		location.Unit = null;
 		location = path[path.Count - 1];
@@ -75,42 +89,44 @@ public class HexUnit : MonoBehaviour {
 	IEnumerator TravelPath () {
 		Vector3 a, b, c = pathToTravel[0].Position;
 		yield return LookAt(pathToTravel[1].Position);
-        if (!currentTravelLocation) {
-            currentTravelLocation = pathToTravel[0];
-        }
-        Grid.DecreaseVisibility(currentTravelLocation, VisionRange);
-        int currentColumn = currentTravelLocation.ColumnIndex;
 
-        float t = Time.deltaTime * travelSpeed;
+		if (!currentTravelLocation) {
+			currentTravelLocation = pathToTravel[0];
+		}
+		Grid.DecreaseVisibility(currentTravelLocation, VisionRange);
+		int currentColumn = currentTravelLocation.ColumnIndex;
+
+		float t = Time.deltaTime * travelSpeed;
 		for (int i = 1; i < pathToTravel.Count; i++) {
 			currentTravelLocation = pathToTravel[i];
 			a = c;
 			b = pathToTravel[i - 1].Position;
 
-            int nextColumn = currentTravelLocation.ColumnIndex;
-            if (currentColumn != nextColumn) {
-                if (nextColumn < currentColumn - 1) {
-                    a.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
-                    b.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
-                }
-                else if (nextColumn > currentColumn + 1) {
-                    a.x += HexMetrics.innerDiameter * HexMetrics.wrapSize;
-                    b.x += HexMetrics.innerDiameter * HexMetrics.wrapSize;
-                }
-                Grid.MakeChildOfColumn(transform, nextColumn);
-                currentColumn = nextColumn;
-            }
-            c = (b + currentTravelLocation.Position) * 0.5f;
-            Grid.IncreaseVisibility(pathToTravel[i], VisionRange);
+			int nextColumn = currentTravelLocation.ColumnIndex;
+			if (currentColumn != nextColumn) {
+				if (nextColumn < currentColumn - 1) {
+					a.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
+					b.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
+				}
+				else if (nextColumn > currentColumn + 1) {
+					a.x += HexMetrics.innerDiameter * HexMetrics.wrapSize;
+					b.x += HexMetrics.innerDiameter * HexMetrics.wrapSize;
+				}
+				Grid.MakeChildOfColumn(transform, nextColumn);
+				currentColumn = nextColumn;
+			}
 
-            for (; t < 1f; t += Time.deltaTime * travelSpeed) {
+			c = (b + currentTravelLocation.Position) * 0.5f;
+			Grid.IncreaseVisibility(pathToTravel[i], VisionRange);
+
+			for (; t < 1f; t += Time.deltaTime * travelSpeed) {
 				transform.localPosition = Bezier.GetPoint(a, b, c, t);
 				Vector3 d = Bezier.GetDerivative(a, b, c, t);
 				d.y = 0f;
 				transform.localRotation = Quaternion.LookRotation(d);
 				yield return null;
 			}
-			Grid.DecreaseVisibility(pathToTravel[i], visionRange);
+			Grid.DecreaseVisibility(pathToTravel[i], VisionRange);
 			t -= 1f;
 		}
 		currentTravelLocation = null;
@@ -118,7 +134,7 @@ public class HexUnit : MonoBehaviour {
 		a = c;
 		b = location.Position;
 		c = b;
-		Grid.IncreaseVisibility(location, visionRange);
+		Grid.IncreaseVisibility(location, VisionRange);
 		for (; t < 1f; t += Time.deltaTime * travelSpeed) {
 			transform.localPosition = Bezier.GetPoint(a, b, c, t);
 			Vector3 d = Bezier.GetDerivative(a, b, c, t);
@@ -134,16 +150,16 @@ public class HexUnit : MonoBehaviour {
 	}
 
 	IEnumerator LookAt (Vector3 point) {
-        if (HexMetrics.Wrapping) {
-            float xDistance = point.x - transform.localPosition.x;
-            if (xDistance < -HexMetrics.innerRadius * HexMetrics.wrapSize) {
-                point.x += HexMetrics.innerDiameter * HexMetrics.wrapSize;
-            }
-            else if (xDistance > HexMetrics.innerRadius * HexMetrics.wrapSize) {
-                point.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
-            }
-        }
-        
+		if (HexMetrics.Wrapping) {
+			float xDistance = point.x - transform.localPosition.x;
+			if (xDistance < -HexMetrics.innerRadius * HexMetrics.wrapSize) {
+				point.x += HexMetrics.innerDiameter * HexMetrics.wrapSize;
+			}
+			else if (xDistance > HexMetrics.innerRadius * HexMetrics.wrapSize) {
+				point.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
+			}
+		}
+
 		point.y = transform.localPosition.y;
 		Quaternion fromRotation = transform.localRotation;
 		Quaternion toRotation =
@@ -167,8 +183,13 @@ public class HexUnit : MonoBehaviour {
 		orientation = transform.localRotation.eulerAngles.y;
 	}
 
-    //두 셀 사이의 이동 비용을 계산합니다.
-    //도로가 있으면 비용이 1로 고정되며 지형 타입에 따라 5 또는 10이 소모됩니다.
+	/// <summary>
+	/// Get the movement cost of moving from one cell to another.
+	/// </summary>
+	/// <param name="fromCell">Cell to move from.</param>
+	/// <param name="toCell">Cell to move to.</param>
+	/// <param name="direction">Movement direction.</param>
+	/// <returns></returns>
 	public int GetMoveCost (
 		HexCell fromCell, HexCell toCell, HexDirection direction)
 	{
@@ -194,19 +215,31 @@ public class HexUnit : MonoBehaviour {
 		return moveCost;
 	}
 
+	/// <summary>
+	/// Terminate the unit.
+	/// </summary>
 	public void Die () {
 		if (location) {
-			Grid.DecreaseVisibility(location, visionRange);
+			Grid.DecreaseVisibility(location, VisionRange);
 		}
 		location.Unit = null;
 		Destroy(gameObject);
 	}
 
+	/// <summary>
+	/// Save the unit data.
+	/// </summary>
+	/// <param name="writer"><see cref="BinaryWriter"/> to use.</param>
 	public void Save (BinaryWriter writer) {
-		location.coordinates.Save(writer);
+		location.Coordinates.Save(writer);
 		writer.Write(orientation);
 	}
 
+	/// <summary>
+	/// Load the unit data.
+	/// </summary>
+	/// <param name="reader"><see cref="BinaryReader"/> to use.</param>
+	/// <param name="grid"><see cref="HexGrid"/> to add the unit to.</param>
 	public static void Load (BinaryReader reader, HexGrid grid) {
 		HexCoordinates coordinates = HexCoordinates.Load(reader);
 		float orientation = reader.ReadSingle();
@@ -219,40 +252,34 @@ public class HexUnit : MonoBehaviour {
 		if (location) {
 			transform.localPosition = location.Position;
 			if (currentTravelLocation) {
-				Grid.IncreaseVisibility(location, visionRange);
-				Grid.DecreaseVisibility(currentTravelLocation, visionRange);
+				Grid.IncreaseVisibility(location, VisionRange);
+				Grid.DecreaseVisibility(currentTravelLocation, VisionRange);
 				currentTravelLocation = null;
 			}
 		}
 	}
 
-    public int VisionRange {
-        get {
-            return 3;
-        }
-    }
-
-    //	void OnDrawGizmos () {
-    //		if (pathToTravel == null || pathToTravel.Count == 0) {
-    //			return;
-    //		}
-    //
-    //		Vector3 a, b, c = pathToTravel[0].Position;
-    //
-    //		for (int i = 1; i < pathToTravel.Count; i++) {
-    //			a = c;
-    //			b = pathToTravel[i - 1].Position;
-    //			c = (b + pathToTravel[i].Position) * 0.5f;
-    //			for (float t = 0f; t < 1f; t += 0.1f) {
-    //				Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
-    //			}
-    //		}
-    //
-    //		a = c;
-    //		b = pathToTravel[pathToTravel.Count - 1].Position;
-    //		c = b;
-    //		for (float t = 0f; t < 1f; t += 0.1f) {
-    //			Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
-    //		}
-    //	}
+//	void OnDrawGizmos () {
+//		if (pathToTravel == null || pathToTravel.Count == 0) {
+//			return;
+//		}
+//
+//		Vector3 a, b, c = pathToTravel[0].Position;
+//
+//		for (int i = 1; i < pathToTravel.Count; i++) {
+//			a = c;
+//			b = pathToTravel[i - 1].Position;
+//			c = (b + pathToTravel[i].Position) * 0.5f;
+//			for (float t = 0f; t < 1f; t += 0.1f) {
+//				Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
+//			}
+//		}
+//
+//		a = c;
+//		b = pathToTravel[pathToTravel.Count - 1].Position;
+//		c = b;
+//		for (float t = 0f; t < 1f; t += 0.1f) {
+//			Gizmos.DrawSphere(Bezier.GetPoint(a, b, c, t), 2f);
+//		}
+//	}
 }

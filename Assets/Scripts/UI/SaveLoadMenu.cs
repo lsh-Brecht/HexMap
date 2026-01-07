@@ -3,19 +3,28 @@ using UnityEngine.UI;
 using System;
 using System.IO;
 
+/// <summary>
+/// Component that applies actions from the save-load menu UI to the hex map.
+/// Public methods are hooked up to the in-game UI.
+/// </summary>
 public class SaveLoadMenu : MonoBehaviour {
 
 	const int mapFileVersion = 5;
 
-	public Text menuLabel, actionButtonLabel;
+	[SerializeField]
+	Text menuLabel, actionButtonLabel;
 
-	public InputField nameInput;
+	[SerializeField]
+	InputField nameInput;
 
-	public RectTransform listContent;
+	[SerializeField]
+	RectTransform listContent;
 
-	public SaveLoadItem itemPrefab;
+	[SerializeField]
+	SaveLoadItem itemPrefab;
 
-	public HexGrid hexGrid;
+	[SerializeField]
+	HexGrid hexGrid;
 
 	bool saveMode;
 
@@ -53,9 +62,7 @@ public class SaveLoadMenu : MonoBehaviour {
 		Close();
 	}
 
-	public void SelectItem (string name) {
-		nameInput.text = name;
-	}
+	public void SelectItem (string name) => nameInput.text = name;
 
 	public void Delete () {
 		string path = GetSelectedPath();
@@ -78,7 +85,7 @@ public class SaveLoadMenu : MonoBehaviour {
 		Array.Sort(paths);
 		for (int i = 0; i < paths.Length; i++) {
 			SaveLoadItem item = Instantiate(itemPrefab);
-			item.menu = this;
+			item.Menu = this;
 			item.MapName = Path.GetFileNameWithoutExtension(paths[i]);
 			item.transform.SetParent(listContent, false);
 		}

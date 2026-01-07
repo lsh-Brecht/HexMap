@@ -1,18 +1,26 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Component that controls the singleton camera that navigates the hex map.
+/// </summary>
 public class HexMapCamera : MonoBehaviour {
 
-	public float stickMinZoom, stickMaxZoom;
+	[SerializeField]
+	float stickMinZoom, stickMaxZoom;
 
-	public float swivelMinZoom, swivelMaxZoom;
+	[SerializeField]
+	float swivelMinZoom, swivelMaxZoom;
 
-	public float moveSpeedMinZoom, moveSpeedMaxZoom;
+	[SerializeField]
+	float moveSpeedMinZoom, moveSpeedMaxZoom;
 
-	public float rotationSpeed;
+	[SerializeField]
+	float rotationSpeed;
+
+	[SerializeField]
+	HexGrid grid;
 
 	Transform swivel, stick;
-
-	public HexGrid grid;
 
 	float zoom = 1f;
 
@@ -20,25 +28,27 @@ public class HexMapCamera : MonoBehaviour {
 
 	static HexMapCamera instance;
 
+	/// <summary>
+	/// Whether the singleton camera controls are locked.
+	/// </summary>
 	public static bool Locked {
-		set {
-			instance.enabled = !value;
-		}
+		set => instance.enabled = !value;
 	}
 
-	public static void ValidatePosition() {
-		instance.AdjustPosition(0f, 0f);
-	}
+	/// <summary>
+	/// Validate the position of the singleton camera.
+	/// </summary>
+	public static void ValidatePosition () => instance.AdjustPosition(0f, 0f);
 
-	void Awake() {
+	void Awake () {
 		swivel = transform.GetChild(0);
 		stick = swivel.GetChild(0);
 	}
 
-    void OnEnable() {
-        instance = this;
-        ValidatePosition();
-    }
+	void OnEnable () {
+		instance = this;
+		ValidatePosition();
+	}
 
 	void Update () {
 		float zoomDelta = Input.GetAxis("Mouse ScrollWheel");
@@ -90,32 +100,33 @@ public class HexMapCamera : MonoBehaviour {
 
 		Vector3 position = transform.localPosition;
 		position += direction * distance;
-		transform.localPosition = grid.wrapping ? WrapPosition(position) : ClampPosition(position);
-    }
+		transform.localPosition =
+			grid.Wrapping ? WrapPosition(position) : ClampPosition(position);
+	}
 
-    Vector3 WrapPosition(Vector3 position) {
-        float width = grid.cellCountX * HexMetrics.innerDiameter;
-        while (position.x < 0f) {
-            position.x += width;
-        }
-        while (position.x > width) {
-            position.x -= width;
-        }
-
-        float zMax = (grid.cellCountZ - 1) * (1.5f * HexMetrics.outerRadius);
-        position.z = Mathf.Clamp(position.z, 0f, zMax);
-
-        grid.CenterMap(position.x);
-        return position;
-    }
-
-    Vector3 ClampPosition (Vector3 position) {
-		float xMax = (grid.cellCountX - 0.5f) * HexMetrics.innerDiameter;
+	Vector3 ClampPosition (Vector3 position) {
+		float xMax = (grid.CellCountX - 0.5f) * HexMetrics.innerDiameter;
 		position.x = Mathf.Clamp(position.x, 0f, xMax);
 
-		float zMax = (grid.cellCountZ - 1) * (1.5f * HexMetrics.outerRadius);
+		float zMax = (grid.CellCountZ - 1) * (1.5f * HexMetrics.outerRadius);
 		position.z = Mathf.Clamp(position.z, 0f, zMax);
 
+		return position;
+	}
+
+	Vector3 WrapPosition (Vector3 position) {
+		float width = grid.CellCountX * HexMetrics.innerDiameter;
+		while (position.x < 0f) {
+			position.x += width;
+		}
+		while (position.x > width) {
+			position.x -= width;
+		}
+
+		float zMax = (grid.CellCountZ - 1) * (1.5f * HexMetrics.outerRadius);
+		position.z = Mathf.Clamp(position.z, 0f, zMax);
+
+		grid.CenterMap(position.x);
 		return position;
 	}
 }

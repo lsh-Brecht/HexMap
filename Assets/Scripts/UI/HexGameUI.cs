@@ -1,23 +1,31 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
+/// <summary>
+/// Component that manages the game UI.
+/// </summary>
 public class HexGameUI : MonoBehaviour {
 
-	public HexGrid grid;
+	[SerializeField]
+	HexGrid grid;
 
 	HexCell currentCell;
 
 	HexUnit selectedUnit;
 
+	/// <summary>
+	/// Set whether map edit mode is active.
+	/// </summary>
+	/// <param name="toggle">Whether edit mode is enabled.</param>
 	public void SetEditMode (bool toggle) {
 		enabled = !toggle;
 		grid.ShowUI(!toggle);
 		grid.ClearPath();
 		if (toggle) {
-			Shader.EnableKeyword("HEX_MAP_EDIT_MODE");
+			Shader.EnableKeyword("_HEX_MAP_EDIT_MODE");
 		}
 		else {
-			Shader.DisableKeyword("HEX_MAP_EDIT_MODE");
+			Shader.DisableKeyword("_HEX_MAP_EDIT_MODE");
 		}
 	}
 
