@@ -63,12 +63,13 @@ public class HexCellShaderData : MonoBehaviour
     /// Supports water surfaces up to 30 units high.
     /// </summary>
     /// <param name="cell">Cell with changed terrain type.</param>
-    public void RefreshTerrain(HexCell cell) {
-        Color32 data = cellTextureData[cell.Index];
+    public void RefreshTerrain(int cellIndex) {
+        HexCellData cell = Grid.CellData[cellIndex];
+        Color32 data = cellTextureData[cellIndex];
         data.b = cell.IsUnderwater ?
             (byte)(cell.WaterSurfaceY * (255f / 30f)) : (byte)0;
         data.a = (byte)cell.TerrainTypeIndex;
-        cellTextureData[cell.Index] = data;
+        cellTextureData[cellIndex] = data;
         enabled = true;
     }
 
@@ -76,15 +77,16 @@ public class HexCellShaderData : MonoBehaviour
     /// Refresh visibility of a cell.
     /// </summary>
     /// <param name="cell">Cell with changed visibility.</param>
-    public void RefreshVisibility(HexCell cell) {
-        int index = cell.Index;
+    public void RefreshVisibility(int cellIndex) {
         if (ImmediateMode) {
-            cellTextureData[index].r = cell.IsVisible ? (byte)255 : (byte)0;
-            cellTextureData[index].g = cell.IsExplored ? (byte)255 : (byte)0;
+            cellTextureData[cellIndex].r = Grid.IsCellVisible(cellIndex) ?
+                (byte)255 : (byte)0;
+            cellTextureData[cellIndex].g = Grid.CellData[cellIndex].IsExplored ?
+                (byte)255 : (byte)0;
         }
-        else if (!visibilityTransitions[index]) {
-            visibilityTransitions[index] = true;
-            transitioningCellIndices.Add(cell.Index);
+        else if (!visibilityTransitions[cellIndex]) {
+            visibilityTransitions[cellIndex] = true;
+            transitioningCellIndices.Add(cellIndex);
         }
         enabled = true;
     }
@@ -95,8 +97,9 @@ public class HexCellShaderData : MonoBehaviour
     /// Supports water surfaces up to 30 units high.
     /// </summary>
     /// <param name="cell">Changed cell.</param>
-    public void ViewElevationChanged(HexCell cell) {
-        cellTextureData[cell.Index].b = cell.IsUnderwater ?
+    public void ViewElevationChanged(int cellIndex) {
+        HexCellData cell = Grid.CellData[cellIndex];
+        cellTextureData[cellIndex].b = cell.IsUnderwater ?
             (byte)(cell.WaterSurfaceY * (255f / 30f)) : (byte)0;
         needsVisibilityReset = true;
         enabled = true;
@@ -127,17 +130,16 @@ public class HexCellShaderData : MonoBehaviour
     }
 
     bool UpdateCellData(int index, int delta) {
-        HexCell cell = Grid.GetCell(index);
         Color32 data = cellTextureData[index];
         bool stillUpdating = false;
 
-        if (cell.IsExplored && data.g < 255) {
+        if (Grid.CellData[index].IsExplored && data.g < 255) {
             stillUpdating = true;
             int t = data.g + delta;
             data.g = t >= 255 ? (byte)255 : (byte)t;
         }
 
-        if (cell.IsVisible) {
+        if (Grid.IsCellVisible(index)) {
             if (data.r < 255) {
                 stillUpdating = true;
                 int t = data.r + delta;
