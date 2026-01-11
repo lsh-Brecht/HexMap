@@ -160,6 +160,17 @@ public static class HexFlagsExtensions
         flags.Has(HexFlags.RiverOutNE, direction);
 
     /// <summary>
+    /// Whether the flags of either an incoming or outgoing river
+    /// in a given direction is set.
+    /// </summary>
+    /// <param name="flags">Flags.</param>
+    /// <param name="direction">River direction.</param>
+    /// <returns>Whether the river is set.</returns>
+    public static bool HasRiver(
+        this HexFlags flags, HexDirection direction) =>
+        flags.HasRiverIn(direction) || flags.HasRiverOut(direction);
+
+    /// <summary>
     /// Returns the flags with the bit for a given outgoing river set.
     /// </summary>
     /// <param name="flags">Flags.</param>

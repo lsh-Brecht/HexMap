@@ -44,8 +44,8 @@ public class HexGrid : MonoBehaviour
     public bool Wrapping { get; private set; }
 
     Transform[] columns;
+
     HexGridChunk[] chunks;
-    HexCell[] cells;
 
     /// <summary>
     /// Bundled cell data.
@@ -57,6 +57,8 @@ public class HexGrid : MonoBehaviour
     /// </summary>
     public Vector3[] CellPositions { get; private set; }
 
+    public HexUnit[] CellUnits { get; private set; }
+
     HexCellSearchData[] searchData;
 
     /// <summary>
@@ -65,6 +67,10 @@ public class HexGrid : MonoBehaviour
     public HexCellSearchData[] SearchData => searchData;
 
     int[] cellVisibility;
+
+    HexGridChunk[] cellGridChunks;
+
+    RectTransform[] cellUIRects;
 
     /// <summary>
     /// The <see cref="HexCellShaderData"/> container
@@ -83,7 +89,9 @@ public class HexGrid : MonoBehaviour
 
     int currentCenterColumnIndex = -1;
 
+#pragma warning disable IDE0044 // Add readonly modifier
     List<HexUnit> units = new();
+#pragma warning restore IDE0044 // Add readonly modifier
 
     HexCellShaderData cellShaderData;
 
@@ -185,11 +193,13 @@ public class HexGrid : MonoBehaviour
     }
 
     void CreateCells() {
-        cells = new HexCell[CellCountZ * CellCountX];
-        CellData = new HexCellData[cells.Length];
-        CellPositions = new Vector3[cells.Length];
-        searchData = new HexCellSearchData[cells.Length];
-        cellVisibility = new int[cells.Length];
+        CellData = new HexCellData[CellCountZ * CellCountX];
+        CellPositions = new Vector3[CellData.Length];
+        cellUIRects = new RectTransform[CellData.Length];
+        cellGridChunks = new HexGridChunk[CellData.Length];
+        CellUnits = new HexUnit[CellData.Length];
+        searchData = new HexCellSearchData[CellData.Length];
+        cellVisibility = new int[CellData.Length];
 
         for (int z = 0, i = 0; z < CellCountZ; z++) {
             for (int x = 0; x < CellCountX; x++) {
@@ -224,7 +234,7 @@ public class HexGrid : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit)) {
             return GetCell(hit.point);
         }
-        return null;
+        return default;
     }
 
     /// <summary>
@@ -248,9 +258,9 @@ public class HexGrid : MonoBehaviour
         int z = coordinates.Z;
         int x = coordinates.X + z / 2;
         if (z < 0 || z >= CellCountZ || x < 0 || x >= CellCountX) {
-            return null;
+            return default;
         }
-        return cells[x + z * CellCountX];
+        return new HexCell(x + z * CellCountX, this);
     }
 
     /// <summary>
@@ -264,10 +274,10 @@ public class HexGrid : MonoBehaviour
         int z = coordinates.Z;
         int x = coordinates.X + z / 2;
         if (z < 0 || z >= CellCountZ || x < 0 || x >= CellCountX) {
-            cell = null;
+            cell = default;
             return false;
         }
-        cell = cells[x + z * CellCountX];
+        cell = new HexCell(x + z * CellCountX, this);
         return true;
     }
 
@@ -276,7 +286,7 @@ public class HexGrid : MonoBehaviour
     /// </summary>
     /// <param name="coordinates"><see cref="HexCoordinates"/>
     /// of the cell.</param>
-    /// <param name="cell">The cell index, if it exists.</param>
+    /// <param name="cell">The cell index, if it exists, otherwise -1.</param>
     /// <returns>Whether the cell index exists.</returns>
     public bool TryGetCellIndex(HexCoordinates coordinates, out int cellIndex) {
         int z = coordinates.Z;
@@ -303,7 +313,7 @@ public class HexGrid : MonoBehaviour
     /// </summary>
     /// <param name="cellIndex">Cell index, which should be valid.</param>
     /// <returns>The indicated cell.</returns>
-    public HexCell GetCell(int cellIndex) => cells[cellIndex];
+    public HexCell GetCell(int cellIndex) => new(cellIndex, this);
 
     /// <summary>
     /// Check whether a cell is visibile.
@@ -328,41 +338,92 @@ public class HexGrid : MonoBehaviour
         position.y = 0f;
         position.z = z * (HexMetrics.outerRadius * 1.5f);
 
-        var cell = cells[i] = new HexCell();
-        cell.Grid = this;
+        var cell = new HexCell(i, this);
         CellPositions[i] = position;
         CellData[i].coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
-        cell.Index = i;
-        cell.ColumnIndex = x / HexMetrics.chunkSizeX;
 
-        if (Wrapping) {
-            cell.Explorable = z > 0 && z < CellCountZ - 1;
-        }
-        else {
-            cell.Explorable =
-                x > 0 && z > 0 && x < CellCountX - 1 && z < CellCountZ - 1;
-        }
+        bool explorable = Wrapping ?
+            z > 0 && z < CellCountZ - 1 :
+            x > 0 && z > 0 && x < CellCountX - 1 && z < CellCountZ - 1;
+        cell.Flags = explorable ?
+            cell.Flags.With(HexFlags.Explorable) :
+            cell.Flags.Without(HexFlags.Explorable);
 
         Text label = Instantiate(cellLabelPrefab);
         label.rectTransform.anchoredPosition =
             new Vector2(position.x, position.z);
-        cell.UIRect = label.rectTransform;
+        RectTransform rect = cellUIRects[i] = label.rectTransform;
 
-        cell.Elevation = 0;
+        cell.Values = cell.Values.WithElevation(0);
+        RefreshCellPosition(i);
 
-        AddCellToChunk(x, z, cell);
-    }
-
-    void AddCellToChunk(int x, int z, HexCell cell) {
         int chunkX = x / HexMetrics.chunkSizeX;
         int chunkZ = z / HexMetrics.chunkSizeZ;
         HexGridChunk chunk = chunks[chunkX + chunkZ * chunkCountX];
 
         int localX = x - chunkX * HexMetrics.chunkSizeX;
         int localZ = z - chunkZ * HexMetrics.chunkSizeZ;
-        cell.Chunk = chunk;
-        chunk.AddCell(
-            localX + localZ * HexMetrics.chunkSizeX, cell.Index, cell.UIRect);
+        cellGridChunks[i] = chunk;
+        chunk.AddCell(localX + localZ * HexMetrics.chunkSizeX, i, rect);
+    }
+
+    /// <summary>
+    /// Refresh the chunk the cell is part of.
+    /// </summary>
+    /// <param name="cellIndex">Cell index.</param>
+    public void RefreshCell(int cellIndex) =>
+        cellGridChunks[cellIndex].Refresh();
+
+    /// <summary>
+    /// Refresh the cell, all its neighbors, and its unit.
+    /// </summary>
+    /// <param name="cellIndex">Cell index.</param>
+    public void RefreshCellWithDependents(int cellIndex) {
+        HexGridChunk chunk = cellGridChunks[cellIndex];
+        chunk.Refresh();
+        HexCoordinates coordinates = CellData[cellIndex].coordinates;
+        for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+            if (TryGetCellIndex(coordinates.Step(d), out int neighborIndex)) {
+                HexGridChunk neighborChunk = cellGridChunks[neighborIndex];
+                if (chunk != neighborChunk) {
+                    neighborChunk.Refresh();
+                }
+            }
+        }
+        HexUnit unit = CellUnits[cellIndex];
+        if (unit) {
+            unit.ValidateLocation();
+        }
+    }
+
+    /// <summary>
+    /// Refresh the world position of a cell.
+    /// </summary>
+    /// <param name="cellIndex">Cell index.</param>
+    public void RefreshCellPosition(int cellIndex) {
+        Vector3 position = CellPositions[cellIndex];
+        position.y = CellData[cellIndex].Elevation * HexMetrics.elevationStep;
+        position.y +=
+            (HexMetrics.SampleNoise(position).y * 2f - 1f) *
+            HexMetrics.elevationPerturbStrength;
+        CellPositions[cellIndex] = position;
+
+        RectTransform rectTransform = cellUIRects[cellIndex];
+        Vector3 uiPosition = rectTransform.localPosition;
+        uiPosition.z = -position.y;
+        rectTransform.localPosition = uiPosition;
+    }
+
+    /// <summary>
+    /// Refresh all cells, to be done after generating a map.
+    /// </summary>
+    public void RefreshAllCells() {
+        for (int i = 0; i < CellData.Length; i++) {
+            SearchData[i].searchPhase = 0;
+            RefreshCellPosition(i);
+            ShaderData.RefreshTerrain(i);
+            ShaderData.RefreshVisibility(i);
+        }
     }
 
     /// <summary>
@@ -374,8 +435,10 @@ public class HexGrid : MonoBehaviour
         writer.Write(CellCountZ);
         writer.Write(Wrapping);
 
-        for (int i = 0; i < cells.Length; i++) {
-            cells[i].Save(writer);
+        for (int i = 0; i < CellData.Length; i++) {
+            HexCellData data = CellData[i];
+            data.values.Save(writer);
+            data.flags.Save(writer);
         }
 
         writer.Write(units.Count);
@@ -407,8 +470,14 @@ public class HexGrid : MonoBehaviour
         bool originalImmediateMode = cellShaderData.ImmediateMode;
         cellShaderData.ImmediateMode = true;
 
-        for (int i = 0; i < cells.Length; i++) {
-            cells[i].Load(reader, header);
+        for (int i = 0; i < CellData.Length; i++) {
+            HexCellData data = CellData[i];
+            data.values = HexValues.Load(reader, header);
+            data.flags = data.flags.Load(reader, header);
+            CellData[i] = data;
+            RefreshCellPosition(i);
+            ShaderData.RefreshTerrain(i);
+            ShaderData.RefreshVisibility(i);
         }
         for (int i = 0; i < chunks.Length; i++) {
             chunks[i].Refresh();
@@ -425,7 +494,7 @@ public class HexGrid : MonoBehaviour
     }
 
     /// <summary>
-    /// Get a list of cells representing the currently visible path.
+    /// Get a list of cell indices representing the currently visible path.
     /// </summary>
     /// <returns>The current path list, if a visible path exists.</returns>
     public List<int> GetPath() {
@@ -443,39 +512,53 @@ public class HexGrid : MonoBehaviour
         return path;
     }
 
+    void SetLabel(int cellIndex, string text) =>
+        cellUIRects[cellIndex].GetComponent<Text>().text = text;
+
+    void DisableHighlight(int cellIndex) =>
+        cellUIRects[cellIndex].GetChild(0).GetComponent<Image>().enabled =
+            false;
+
+    void EnableHighlight(int cellIndex, Color color) {
+        Image highlight =
+            cellUIRects[cellIndex].GetChild(0).GetComponent<Image>();
+        highlight.color = color;
+        highlight.enabled = true;
+    }
+
     /// <summary>
     /// Clear the current path.
     /// </summary>
     public void ClearPath() {
         if (currentPathExists) {
-            HexCell current = cells[currentPathToIndex];
-            while (current.Index != currentPathFromIndex) {
-                current.SetLabel(null);
-                current.DisableHighlight();
-                current = cells[searchData[current.Index].pathFrom];
+            int currentIndex = currentPathToIndex;
+            while (currentIndex != currentPathFromIndex) {
+                SetLabel(currentIndex, null);
+                DisableHighlight(currentIndex);
+                currentIndex = searchData[currentIndex].pathFrom;
             }
-            current.DisableHighlight();
+            DisableHighlight(currentIndex);
             currentPathExists = false;
         }
         else if (currentPathFromIndex >= 0) {
-            cells[currentPathFromIndex].DisableHighlight();
-            cells[currentPathToIndex].DisableHighlight();
+            DisableHighlight(currentPathFromIndex);
+            DisableHighlight(currentPathToIndex);
         }
         currentPathFromIndex = currentPathToIndex = -1;
     }
 
     void ShowPath(int speed) {
         if (currentPathExists) {
-            HexCell current = cells[currentPathToIndex];
-            while (current.Index != currentPathFromIndex) {
-                int turn = (searchData[current.Index].distance - 1) / speed;
-                current.SetLabel(turn.ToString());
-                current.EnableHighlight(Color.white);
-                current = cells[searchData[current.Index].pathFrom];
+            int currentIndex = currentPathToIndex;
+            while (currentIndex != currentPathFromIndex) {
+                int turn = (searchData[currentIndex].distance - 1) / speed;
+                SetLabel(currentIndex, turn.ToString());
+                EnableHighlight(currentIndex, Color.white);
+                currentIndex = searchData[currentIndex].pathFrom;
             }
         }
-        cells[currentPathFromIndex].EnableHighlight(Color.blue);
-        cells[currentPathToIndex].EnableHighlight(Color.red);
+        EnableHighlight(currentPathFromIndex, Color.blue);
+        EnableHighlight(currentPathToIndex, Color.red);
     }
 
     /// <summary>
@@ -503,7 +586,7 @@ public class HexGrid : MonoBehaviour
         };
         searchFrontier.Enqueue(fromCell.Index);
         while (searchFrontier.TryDequeue(out int currentIndex)) {
-            HexCell current = cells[currentIndex];
+            var current = new HexCell(currentIndex, this);
             int currentDistance = searchData[currentIndex].distance;
             searchData[currentIndex].searchPhase += 1;
 
@@ -564,7 +647,8 @@ public class HexGrid : MonoBehaviour
         for (int i = 0; i < cells.Count; i++) {
             int cellIndex = cells[i].Index;
             if (++cellVisibility[cellIndex] == 1) {
-                cells[i].MarkAsExplored();
+                HexCell c = cells[i];
+                c.Flags = c.Flags.With(HexFlags.Explored);
                 cellShaderData.RefreshVisibility(cellIndex);
             }
         }
@@ -591,7 +675,7 @@ public class HexGrid : MonoBehaviour
     /// Reset visibility of the entire map, viewing from all units.
     /// </summary>
     public void ResetVisibility() {
-        for (int i = 0; i < cells.Length; i++) {
+        for (int i = 0; i < cellVisibility.Length; i++) {
             if (cellVisibility[i] > 0) {
                 cellVisibility[i] = 0;
                 cellShaderData.RefreshVisibility(i);
@@ -610,7 +694,7 @@ public class HexGrid : MonoBehaviour
         searchFrontier ??= new HexCellPriorityQueue(this);
         searchFrontier.Clear();
 
-        range += fromCell.ViewElevation;
+        range += fromCell.Values.ViewElevation;
         searchData[fromCell.Index] = new HexCellSearchData {
             searchPhase = searchFrontierPhase,
             pathFrom = searchData[fromCell.Index].pathFrom
@@ -618,7 +702,7 @@ public class HexGrid : MonoBehaviour
         searchFrontier.Enqueue(fromCell.Index);
         HexCoordinates fromCoordinates = fromCell.Coordinates;
         while (searchFrontier.TryDequeue(out int currentIndex)) {
-            HexCell current = cells[currentIndex];
+            var current = new HexCell(currentIndex, this);
             searchData[currentIndex].searchPhase += 1;
             visibleCells.Add(current);
 
@@ -628,12 +712,12 @@ public class HexGrid : MonoBehaviour
                 }
                 HexCellSearchData currentData = searchData[neighbor.Index];
                 if (currentData.searchPhase > searchFrontierPhase ||
-                    !neighbor.Explorable) {
+                    neighbor.Flags.HasNone(HexFlags.Explorable)) {
                     continue;
                 }
 
                 int distance = searchData[currentIndex].distance + 1;
-                if (distance + neighbor.ViewElevation > range ||
+                if (distance + neighbor.Values.ViewElevation > range ||
                     distance > fromCoordinates.DistanceTo(neighbor.Coordinates)) {
                     continue;
                 }

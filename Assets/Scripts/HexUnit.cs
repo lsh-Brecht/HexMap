@@ -22,7 +22,7 @@ public class HexUnit : MonoBehaviour
         get => Grid.GetCell(locationCellIndex);
         set {
             if (locationCellIndex >= 0) {
-                HexCell location = Grid.GetCell(locationCellIndex); // new
+                HexCell location = Grid.GetCell(locationCellIndex);
                 Grid.DecreaseVisibility(location, VisionRange);
                 location.Unit = null;
             }
@@ -30,7 +30,7 @@ public class HexUnit : MonoBehaviour
             value.Unit = this;
             Grid.IncreaseVisibility(value, VisionRange);
             transform.localPosition = value.Position;
-            Grid.MakeChildOfColumn(transform, value.ColumnIndex);
+            Grid.MakeChildOfColumn(transform, value.Coordinates.ColumnIndex);
         }
     }
 
@@ -73,7 +73,8 @@ public class HexUnit : MonoBehaviour
     /// <param name="cell">Cell to check.</param>
     /// <returns>Whether the unit could occupy the cell.</returns>
     public bool IsValidDestination(HexCell cell) =>
-        cell.IsExplored && !cell.IsUnderwater && !cell.Unit;
+        cell.Flags.HasAll(HexFlags.Explored | HexFlags.Explorable) &&
+        !cell.Values.IsUnderwater && !cell.Unit;
 
     /// <summary>
     /// Travel along a path.
@@ -97,9 +98,10 @@ public class HexUnit : MonoBehaviour
         if (currentTravelLocationCellIndex < 0) {
             currentTravelLocationCellIndex = pathToTravel[0];
         }
-        HexCell currentTravelLocation = Grid.GetCell(currentTravelLocationCellIndex);
+        HexCell currentTravelLocation = Grid.GetCell(
+            currentTravelLocationCellIndex);
         Grid.DecreaseVisibility(currentTravelLocation, VisionRange);
-        int currentColumn = currentTravelLocation.ColumnIndex;
+        int currentColumn = currentTravelLocation.Coordinates.ColumnIndex;
 
         float t = Time.deltaTime * travelSpeed;
         for (int i = 1; i < pathToTravel.Count; i++) {
@@ -108,7 +110,7 @@ public class HexUnit : MonoBehaviour
             a = c;
             b = Grid.GetCell(pathToTravel[i - 1]).Position;
 
-            int nextColumn = currentTravelLocation.ColumnIndex;
+            int nextColumn = currentTravelLocation.Coordinates.ColumnIndex;
             if (currentColumn != nextColumn) {
                 if (nextColumn < currentColumn - 1) {
                     a.x -= HexMetrics.innerDiameter * HexMetrics.wrapSize;
@@ -175,8 +177,10 @@ public class HexUnit : MonoBehaviour
 
         if (angle > 0f) {
             float speed = rotationSpeed / angle;
-            for (float t = Time.deltaTime * speed; t < 1f; t += Time.deltaTime * speed) {
-                transform.localRotation = Quaternion.Slerp(fromRotation, toRotation, t);
+            for (float t = Time.deltaTime * speed;
+                t < 1f; t += Time.deltaTime * speed) {
+                transform.localRotation = Quaternion.Slerp(
+                    fromRotation, toRotation, t);
                 yield return null;
             }
         }
@@ -192,25 +196,28 @@ public class HexUnit : MonoBehaviour
     /// <param name="toCell">Cell to move to.</param>
     /// <param name="direction">Movement direction.</param>
     /// <returns></returns>
-    public int GetMoveCost(HexCell fromCell, HexCell toCell, HexDirection direction) {
+    public int GetMoveCost(
+        HexCell fromCell, HexCell toCell, HexDirection direction) {
         if (!IsValidDestination(toCell)) {
             return -1;
         }
-        HexEdgeType edgeType = fromCell.GetEdgeType(toCell);
+        HexEdgeType edgeType = HexMetrics.GetEdgeType(
+            fromCell.Values.Elevation, toCell.Values.Elevation);
         if (edgeType == HexEdgeType.Cliff) {
             return -1;
         }
         int moveCost;
-        if (fromCell.HasRoadThroughEdge(direction)) {
+        if (fromCell.Flags.HasRoad(direction)) {
             moveCost = 1;
         }
-        else if (fromCell.Walled != toCell.Walled) {
+        else if (fromCell.Flags.HasAny(HexFlags.Walled) !=
+            toCell.Flags.HasAny(HexFlags.Walled)) {
             return -1;
         }
         else {
             moveCost = edgeType == HexEdgeType.Flat ? 5 : 10;
-            moveCost +=
-                toCell.UrbanLevel + toCell.FarmLevel + toCell.PlantLevel;
+            HexValues v = toCell.Values;
+            moveCost += v.UrbanLevel + v.FarmLevel + v.PlantLevel;
         }
         return moveCost;
     }
@@ -243,7 +250,8 @@ public class HexUnit : MonoBehaviour
     public static void Load(BinaryReader reader, HexGrid grid) {
         HexCoordinates coordinates = HexCoordinates.Load(reader);
         float orientation = reader.ReadSingle();
-        grid.AddUnit(Instantiate(unitPrefab), grid.GetCell(coordinates), orientation);
+        grid.AddUnit(
+            Instantiate(unitPrefab), grid.GetCell(coordinates), orientation);
     }
 
     void OnEnable() {
