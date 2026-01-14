@@ -76,6 +76,16 @@ public static class HexMetrics {
 	public const float verticalTerraceStepSize = 1f / (terracesPerSlope + 1);
 
 	/// <summary>
+	/// Elevation level for mountain cells.
+	/// </summary>
+	public const int ElevationMountain = 8;
+
+	/// <summary>
+	/// Offset for mountain peak elevation.
+	/// </summary>
+	public const float mountainPeakElevationOffset = 10f;
+
+	/// <summary>
 	/// Strength of cell position terturbation.
 	/// </summary>
 	public const float cellPerturbStrength = 4f;

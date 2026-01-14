@@ -74,7 +74,8 @@ public class HexUnit : MonoBehaviour
     /// <returns>Whether the unit could occupy the cell.</returns>
     public bool IsValidDestination(HexCell cell) =>
         cell.Flags.HasAll(HexFlags.Explored | HexFlags.Explorable) &&
-        !cell.Values.IsUnderwater && !cell.Unit;
+        !cell.Values.IsUnderwater && !cell.Unit &&
+        cell.Values.Elevation < HexMetrics.ElevationMountain;
 
     /// <summary>
     /// Travel along a path.

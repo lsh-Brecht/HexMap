@@ -37,9 +37,23 @@ Unity에서 procedural mesh generation과 타일맵에서의 경로 탐색 알�
 
 <img src="images/hexMapImage_largeMap.png" width="500">
 
+유명한 게임에 자주 등장하는 산을 추가해봤습니다.
+옆의 사진은 격자를 켰을 때의 모습입니다.
+
+<table>
+  <tr>
+    <td><img src="images/hexMapImage_mountain.png" width="335"></td>
+    <td><img src="images/hexMapImage_grid.png" width="300"></td>
+  </tr>
+  <tr>
+    <td align="center">유닛이 통과할 수 없습니다</td>
+    <td align="center">노이즈 때문에 조금씩 벗어나는 게 보입니다</td>
+  </tr>
+</table>
+
 ---
 🛠️ 향후 계획  
-- 물 외에도 이동이 불가능하고 시야를 제한하는 지형 생성(산)
+- 산맥처럼 여러 산들이 생겼을 때 서로 자연스럽게 연결하기.
 - 유닛을 이용한 도시, 숲과의 상호작용
 - (해결)Built-in 렌더링을 기준으로 작성된 텍스쳐를 새 유니티 버전(URP)에 맞게 수정
 ---

@@ -98,9 +98,14 @@ public class HexGridChunk : MonoBehaviour
         HexCellData cell,
         int cellIndex,
         Vector3 center) {
+        float originalCenterY = center.y;
         var e = new EdgeVertices(
             center + HexMetrics.GetFirstSolidCorner(direction),
             center + HexMetrics.GetSecondSolidCorner(direction));
+
+        if (cell.Elevation >= HexMetrics.ElevationMountain) {
+            center.y += HexMetrics.mountainPeakElevationOffset;
+        }
 
         if (cell.HasRiver) {
             if (cell.HasRiverThroughEdge(direction)) {
@@ -126,7 +131,7 @@ public class HexGridChunk : MonoBehaviour
         }
 
         if (direction <= HexDirection.SE) {
-            TriangulateConnection(direction, cell, cellIndex, center.y, e);
+            TriangulateConnection(direction, cell, cellIndex, originalCenterY, e);
         }
 
         if (cell.IsUnderwater) {
