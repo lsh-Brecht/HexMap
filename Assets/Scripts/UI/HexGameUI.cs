@@ -43,6 +43,16 @@ public class HexGameUI : MonoBehaviour
                 }
             }
         }
+        
+        if (Input.GetKeyDown(KeyCode.Return)) {
+            DoEndTurn();
+        }
+    }
+
+    public void DoEndTurn() {
+        grid.ResetTurn();
+        selectedUnit = null;
+        grid.ClearPath();
     }
 
     void DoSelection() {

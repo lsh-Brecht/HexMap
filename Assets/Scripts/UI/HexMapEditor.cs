@@ -60,6 +60,11 @@ public class HexMapEditor : MonoBehaviour
 
         VisualElement root = sidePanels.rootVisualElement;
 
+        Button endTurnButton = root.Q<Button>("EndTurnButton");
+        if (endTurnButton != null) {
+            endTurnButton.clicked += OnEndTurnButtonClicked;
+        }
+
         root.Q<RadioButtonGroup>("Terrain").RegisterValueChangedCallback(
             change => activeTerrainTypeIndex = change.newValue - 1);
 
@@ -282,5 +287,10 @@ public class HexMapEditor : MonoBehaviour
                 }
             }
         }
+    }
+
+    void OnEndTurnButtonClicked() {
+        Debug.Log("Turn Ended!");
+        gameUI.DoEndTurn();
     }
 }

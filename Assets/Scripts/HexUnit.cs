@@ -53,6 +53,11 @@ public class HexUnit : MonoBehaviour
     public int Speed => 24;
 
     /// <summary>
+    /// Current remaining movement points.
+    /// </summary>
+    public int MovementPoints { get; private set; }
+
+    /// <summary>
     /// Vision range of the unit, in cells.
     /// </summary>
     public int VisionRange => 3;
@@ -78,6 +83,13 @@ public class HexUnit : MonoBehaviour
         cell.Values.Elevation < HexMetrics.ElevationMountain;
 
     /// <summary>
+    /// Reset the unit's movement points for a new turn.
+    /// </summary>
+    public void ResetTurn() {
+        MovementPoints = Speed;
+    }
+
+    /// <summary>
     /// Travel along a path.
     /// </summary>
     /// <param name="path">List of cells that describe a valid path.</param>
@@ -86,10 +98,45 @@ public class HexUnit : MonoBehaviour
         location.Unit = null;
         location = Grid.GetCell(path[^1]);
         locationCellIndex = location.Index;
+        
+        // Calculate how far we can go
+        int k = 1;
+        for (; k < path.Count; k++) {
+            HexCell fromCell = Grid.GetCell(path[k - 1]);
+            HexCell toCell = Grid.GetCell(path[k]);
+            HexDirection direction = HexDirection.NE;
+            for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+                if (fromCell.GetNeighbor(d) == toCell) {
+                    direction = d;
+                    break;
+                }
+            }
+            int cost = GetMoveCost(fromCell, toCell, direction);
+            if (MovementPoints >= cost) {
+                MovementPoints -= cost;
+            }
+            else {
+                k -= 1; // Cannot move to this cell
+                break;
+            }
+        }
+
+        if (k < path.Count) {
+            path.RemoveRange(k + 1, path.Count - k - 1);
+        }
+        
+        location = Grid.GetCell(path[^1]);
+        locationCellIndex = location.Index;
         location.Unit = this;
-        pathToTravel = path;
-        StopAllCoroutines();
-        StartCoroutine(TravelPath());
+
+        if (path.Count > 1) {
+            pathToTravel = path;
+            StopAllCoroutines();
+            StartCoroutine(TravelPath());
+        }
+        else {
+            ListPool<int>.Add(path);
+        }
     }
 
     IEnumerator TravelPath() {
@@ -257,6 +304,7 @@ public class HexUnit : MonoBehaviour
 
     void OnEnable() {
         if (locationCellIndex >= 0) {
+            MovementPoints = Speed;
             HexCell location = Grid.GetCell(locationCellIndex);
             transform.localPosition = location.Position;
             if (currentTravelLocationCellIndex >= 0) {

@@ -107,6 +107,15 @@ public class HexGrid : MonoBehaviour
     }
 
     /// <summary>
+    /// Reset the turn for all units.
+    /// </summary>
+    public void ResetTurn() {
+        for (int i = 0; i < units.Count; i++) {
+            units[i].ResetTurn();
+        }
+    }
+
+    /// <summary>
     /// Add a unit to the map.
     /// </summary>
     /// <param name="unit">Unit to add.</param>
