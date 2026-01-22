@@ -101,6 +101,12 @@ public class HexMapGenerator : MonoBehaviour
     [SerializeField, Range(0f, 1f)]
     float temperatureJitter = 0.1f;
 
+    [SerializeField, Range(0f, 1f)]
+    float cityProbability = 0.02f;
+
+    [SerializeField, Range(0f, 1f)]
+    float castleProbability = 0.25f;
+
     HexCellPriorityQueue searchFrontier;
 
     int searchFrontierPhase;
@@ -176,6 +182,7 @@ public class HexMapGenerator : MonoBehaviour
         CreateClimate();
         CreateRivers();
         SetTerrainType();
+        CreateFeatures();
         grid.RefreshAllCells();
 
         Random.state = originalRandomState;
@@ -786,6 +793,104 @@ public class HexMapGenerator : MonoBehaviour
                 grid.CellData[i].values =
                     cell.values.WithTerrainTypeIndex(terrain);
             }
+        }
+    }
+
+    void CreateFeatures() {
+        for (int i = 0; i < cellCount; i++) {
+            HexCellData cell = grid.CellData[i];
+            if (cell.IsUnderwater) {
+                continue;
+            }
+
+            // Castle on isolated peaks (Elevation 7+)
+            if (cell.Elevation >= 7 && cell.TerrainTypeIndex != 4) { // Not Snow
+                 bool isolated = true;
+                 for(HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+                     if (grid.TryGetCellIndex(cell.coordinates.Step(d), out int neighborIndex)) {
+                         if (grid.CellData[neighborIndex].Elevation >= cell.Elevation) {
+                             isolated = false;
+                             break;
+                         }
+                     }
+                 }
+                 if (isolated && Random.value < castleProbability) {
+                     grid.CellData[i].values = cell.values.WithSpecialIndex(1);
+                     SpreadCastle(i);
+                     continue; 
+                 }
+            }
+
+            // Cities (Flat, Near River/Coast, Fertile)
+            if (cell.UrbanLevel == 0 && cell.FarmLevel == 0 && cell.PlantLevel == 0 && cell.SpecialIndex == 0) {
+                if (cell.HasRiver || IsCoastal(i)) { 
+                     // Simple check for "Good" terrain (Grass/Mud, not Desert/Snow/Rock)
+                     // Terrain Indices: 0: Sand, 1: Grass, 2: Mud, 3: Stone, 4: Snow (Approx from biomes)
+                     if (cell.TerrainTypeIndex == 1 || cell.TerrainTypeIndex == 2) {
+                         if (Random.value < cityProbability) { // Rare chance for a city center
+                             grid.CellData[i].values = cell.values.WithUrbanLevel(3);
+                             // Spread logic could go here, but simple for now
+                             SpreadUrban(i);
+                         }
+                     }
+                }
+            }
+        }
+    }
+
+    void SpreadCastle(int centerIndex) {
+        HexCellData center = grid.CellData[centerIndex];
+        for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+             if (grid.TryGetCellIndex(center.coordinates.Step(d), out int neighborIndex)) {
+                 HexCellData neighbor = grid.CellData[neighborIndex];
+                 if (!neighbor.IsUnderwater && neighbor.SpecialIndex == 0) {
+                     // Wall around the castle
+                     grid.CellData[neighborIndex].flags = neighbor.flags.With(HexFlags.Walled);
+                     // Farms inside the walls (supplies)
+                     grid.CellData[neighborIndex].values = neighbor.values.WithFarmLevel(Random.Range(1, 3));
+                     
+                     // Extra ring of farms outside
+                     for(HexDirection d2 = HexDirection.NE; d2 <= HexDirection.NW; d2++) {
+                         if(grid.TryGetCellIndex(neighbor.coordinates.Step(d2), out int outerIndex)) {
+                              HexCellData outer = grid.CellData[outerIndex];
+                              if (!outer.IsUnderwater && outer.SpecialIndex == 0 && outer.FarmLevel == 0 && outerIndex != centerIndex) {
+                                  if(Random.value < 0.5f) {
+                                      grid.CellData[outerIndex].values = outer.values.WithFarmLevel(Random.Range(1, 2));
+                                  }
+                              }
+                         }
+                     }
+                 }
+             }
+        }
+    }
+
+    bool IsCoastal(int cellIndex) {
+        HexCellData cell = grid.CellData[cellIndex];
+        for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+            if (grid.TryGetCellIndex(cell.coordinates.Step(d), out int neighborIndex)) {
+                if (grid.CellData[neighborIndex].IsUnderwater) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    void SpreadUrban(int centerIndex) {
+        // Simple 1-step spread
+        HexCellData center = grid.CellData[centerIndex];
+        for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++) {
+             if (grid.TryGetCellIndex(center.coordinates.Step(d), out int neighborIndex)) {
+                 HexCellData neighbor = grid.CellData[neighborIndex];
+                 if (!neighbor.IsUnderwater && neighbor.SpecialIndex == 0) {
+                     if (Random.value < 0.6f) {
+                         grid.CellData[neighborIndex].values = neighbor.values.WithUrbanLevel(2);
+                     } else if (Random.value < 0.8f) {
+                          grid.CellData[neighborIndex].values = neighbor.values.WithFarmLevel(Random.Range(1, 3));
+                     }
+                 }
+             }
         }
     }
 

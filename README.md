@@ -26,14 +26,14 @@ Unity에서 procedural mesh generation과 타일맵에서의 경로 탐색 알�
 
 간단한 전장의 안개입니다.
 
-<img src="images/hexMapImage_fogOfWar.png" width="300">
+<img src="images/hexMapImage_fogOfWar.png" width="200">
 
 처음 만들었던 간단한 맵.
 시드를 통해 생성하고 높이에 따라 다른 지형을 사용하는 원시적인 방법이었습니다.
 
-<img src="images/hexMapImage_simpleMap.png" width="400">
+<img src="images/hexMapImage_simpleMap.png" width="350">
 
-자연스러운 생성을 위해 시뮬레이션을 적용한 대형 맵입니다.
+아래는 자연스러운 생성을 위해 시뮬레이션을 적용한 대형 맵입니다.
 
 <img src="images/hexMapImage_largeMap.png" width="500">
 
@@ -46,10 +46,14 @@ Unity에서 procedural mesh generation과 타일맵에서의 경로 탐색 알�
     <td><img src="images/hexMapImage_grid.png" width="300"></td>
   </tr>
   <tr>
-    <td align="center">유닛이 통과할 수 없습니다</td>
-    <td align="center">노이즈 때문에 조금씩 벗어나는 게 보입니다</td>
+    <td align="center">유닛이 산을 통과할 수 없습니다</td>
+    <td align="center">노이즈 때문에 격자를 조금씩 벗어나는 게 보입니다</td>
   </tr>
 </table>
+
+<img src="images/hexMapImage_castle.png" width="300"></td>
+
+산에 성과 성벽이 생성됩니다. 주변 농경지도 볼 수 있습니다.
 
 ---
 🛠️ 향후 계획  
